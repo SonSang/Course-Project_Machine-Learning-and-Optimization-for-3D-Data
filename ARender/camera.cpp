@@ -137,7 +137,7 @@ namespace AF {
         view_lookat(pos, center, up);
     }
     void camera::update_proj(int width, int height) {
-        projection_persp(DEFAULT_FOVY * get_mag(), width / (double)height, 0.1, 100);
+        projection_persp(DEFAULT_FOVY * get_mag(), width / (double)height, near_plane, far_plane);
     }
 
     // View, projection matrix
@@ -206,7 +206,7 @@ namespace AF {
         this->projection.set(0, 0, float(cot / aspect));
         this->projection.set(1, 1, float(cot));
         this->projection.set(2, 2, float(-(far + near) / (far - near)));
-        this->projection.set(2, 3, float(-(far * near) / (far - near)));
+        this->projection.set(2, 3, float(-2.0 * (far * near) / (far - near)));
         this->projection.set(3, 2, float(-1.0));
     }
 

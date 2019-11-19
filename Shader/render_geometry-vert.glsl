@@ -1,5 +1,5 @@
 attribute vec4 position;
-attribute vec4 normal;
+attribute vec4 normal;      // If we do not use these variables, compiler can throw them away!
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -15,5 +15,8 @@ void main(void)
     vec4 eye_pos4 = MV * position;
     eye_position = eye_pos4.xyz;
     eye_normal = normalize(MV * normal).xyz;
-    gl_Position = projection * eye_pos4;
+
+    vec4 result = projection * eye_pos4;
+    vec3 result2 = (result.xyz) / result.w;
+    gl_Position = vec4(-result2, 1.0);      // WHY???
 }

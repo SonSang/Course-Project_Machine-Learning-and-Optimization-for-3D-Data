@@ -32,7 +32,7 @@ AF::camera          MC;     // Main Camera
 AF::scene_manager   SM;     // Scene Manager
 
 void init_camera() {
-    MC.set_position(0, 0, 1);
+    MC.set_position(0, 0, 0);
     MC.update_view();
     MC.update_proj(wnd_width, wnd_height);
 }
@@ -53,7 +53,7 @@ void import_model() {
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
     ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek Vase 3.obj");
-    ptr->build_shader("./Shader/simple-vert.glsl", "./Shader/simple-frag.glsl");  //  Always have to set shader before BO.
+    ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
     ptr->build_BO();
     ptr->get_config().M = ptr->get_config().WIREFRAME;
     SM.add_object_property(cobj->get_id(), ptr);
@@ -109,6 +109,20 @@ int main(int argc, char** argv)
             }
             else {
                 switch(e.type) {
+                case SDL_KEYDOWN:
+                    if(e.key.keysym.sym == 119) {   // W
+                        MC.move_back_forth(1);
+                    }
+                    else if(e.key.keysym.sym == 115) {   // S
+                        MC.move_back_forth(-1);
+                    }
+                    else if(e.key.keysym.sym == 97) {   // A
+                        MC.move_left_right(-1);
+                    }
+                    else if(e.key.keysym.sym == 100) {   // D
+                        MC.move_left_right(1);
+                    }
+                    break;
                 case SDL_QUIT:
                     std::terminate();
                     break;
@@ -117,7 +131,7 @@ int main(int argc, char** argv)
         }
 
         // Clear the screen to black
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         SM.render(MC);        

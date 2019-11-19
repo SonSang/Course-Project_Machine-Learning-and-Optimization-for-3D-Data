@@ -73,6 +73,13 @@ int main(int argc, char** argv)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+
+    GLuint indices[] = { 0, 1, 2 };
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     // Shader
     AF::shader shader;
     try {
@@ -81,7 +88,6 @@ int main(int argc, char** argv)
         std::cout<<e.what()<<std::endl;
         exit(-1);
     }
-    
 
     // Specify the layout of the vertex data
     GLint posAttrib = shader.get_attribute_location("position");
@@ -103,7 +109,8 @@ int main(int argc, char** argv)
 
         // Draw a triangle from the 3 vertices
         shader.enable();                        // Must call this! ( Or have just white result... )
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        //glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         shader.disable();
 
         SDL_GL_SwapWindow(window);

@@ -240,17 +240,29 @@ namespace AF {
 		atob.set_rotation(bt * A.R);
 	}
 	void transform::to_array(double arr[16], bool transpose) const noexcept {
+		for(int i = 0; i < 16; i++)
+			arr[i] = 0.0;
 		for(int i = 0; i < 3; i++) {
 			for(int j = 0; j < 3; j++)
-				arr[4 * i + j] = R[j][i];
-			arr[12 + i] = T[i];
-		}			
+				arr[4 * i + j] = (transpose ? R[j][i] : R[i][j]);
+			if(transpose)
+				arr[12 + i] = T[i];
+			else
+				arr[4 * i + 3] = T[i];			
+		}
+		arr[15] = 1.0;			
 	}
 	void transform::to_array(float arr[16], bool transpose) const noexcept {
+		for(int i = 0; i < 16; i++)
+			arr[i] = 0.0f;
 		for(int i = 0; i < 3; i++) {
 			for(int j = 0; j < 3; j++)
-				arr[4 * i + j] = (float)R[j][i];
-			arr[12 + i] = (float)T[i];
-		}			
+				arr[4 * i + j] = (float)(transpose ? R[j][i] : R[i][j]);
+			if(transpose)
+				arr[12 + i] = (float)T[i];
+			else
+				arr[4 * i + 3] = (float)T[i];			
+		}
+		arr[15] = 1.0f;
 	}
 }

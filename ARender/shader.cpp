@@ -117,36 +117,40 @@ namespace AF {
         float mat[16];
         TR.to_array(mat, true);
 
-        enable();
         uint id = get_uniform_location("model");
-        glUniformMatrix4fv(id, 16, false, mat);
+
+        enable();
+        glUniformMatrix4fv(id, 1, GL_FALSE, mat);
         disable();
     }
     void shader::set_uniform_view_matrix(const transform &TR) const {
         float mat[16];
         TR.to_array(mat, true);
 
-        enable();
         uint id = get_uniform_location("view");
-        glUniformMatrix4fv(id, 16, false, mat);
+
+        enable();
+        glUniformMatrix4fv(id, 1, GL_FALSE, mat);
         disable();
     }
     void shader::set_uniform_view_matrix(const mat4d &M) const {
         float mat[16];
         M.to_array(mat, true);
 
-        enable();
         uint id = get_uniform_location("view");
-        glUniformMatrix4fv(id, 16, false, mat);
+
+        enable();
+        glUniformMatrix4fv(id, 1, GL_FALSE, mat);
         disable();
     }
     void shader::set_uniform_projection_matrix(const mat4d &M) const {
         float mat[16];
         M.to_array(mat, true);
 
-        enable();
         uint id = get_uniform_location("projection");
-        glUniformMatrix4fv(id, 16, false, mat);
+
+        enable();
+        glUniformMatrix4fv(id, 1, GL_FALSE, mat);
         disable();
     }
 

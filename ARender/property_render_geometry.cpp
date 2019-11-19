@@ -25,18 +25,21 @@ namespace AF {
                 vertices[3 * i + j] = (float)geometry.get_vertices_c()[i][j];
                 normals[3 * i + j] = (float)geometry.get_normals_c()[i][j];
             }
-        } 
+            vertices[3 * i + 2] = 0.0f;
+        }
 
         // Position
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * size, vertices, GL_STATIC_DRAW);    // @BUGFIX : sizeof(ptr) returns 8!
         int attrib = get_shader_c().get_attribute_location("position");
+        glEnableVertexAttribArray(attrib);
         glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
         // Normal
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(normals), normals, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * size, normals, GL_STATIC_DRAW);
         attrib = get_shader_c().get_attribute_location("normal");
+        glEnableVertexAttribArray(attrib);
         glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
         delete[] vertices;
@@ -65,11 +68,11 @@ namespace AF {
             
         // Face
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(faces), faces, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * 3 * size, faces, GL_STATIC_DRAW);
 
         // Edge
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(edges), edges, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * 6 * size, edges, GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         delete[] faces;
