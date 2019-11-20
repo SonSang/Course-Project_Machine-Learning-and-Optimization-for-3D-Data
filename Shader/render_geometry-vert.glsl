@@ -1,3 +1,4 @@
+#version 100                // It is needed to use precision qualifiers.
 attribute vec4 position;
 attribute vec4 normal;      // If we do not use these variables, compiler can throw them away!
 
@@ -6,8 +7,8 @@ uniform mat4 view;
 uniform mat4 model;
 
 // Position and Normal in View space.
-varying vec3 eye_position;
-varying vec3 eye_normal;
+varying mediump vec3 eye_position;
+varying mediump vec3 eye_normal;
 
 void main(void)
 {

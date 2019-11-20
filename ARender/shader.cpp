@@ -80,25 +80,29 @@ namespace AF {
         this->fragment_shader = create_fragment_shader(filename);
     }
     void shader::set_program(const std::string &vert_filename, const std::string &frag_filename) {
-        set_vertex_shader(vert_filename);
-        set_fragment_shader(frag_filename);
-        GLuint
-            p = glCreateProgram();
-        glAttachShader(p, get_vertex_shader());
-        glAttachShader(p, get_fragment_shader());
-        glLinkProgram(p);
-        int
-            success;
-        char
-            infoLog[512];
-        glGetProgramiv(p, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(p, 512, NULL, infoLog);
-            throw(std::runtime_error(   std::string("[SHADER ERROR] : Shader program linkage failed\n") +
-                                        std::string("[LINKAGE ERROR MESSAGE] : \n") + 
-                                        std::string(infoLog)));
-        }
-        program = p;
+        try {
+            set_vertex_shader(vert_filename);
+            set_fragment_shader(frag_filename);
+            GLuint
+                p = glCreateProgram();
+            glAttachShader(p, get_vertex_shader());
+            glAttachShader(p, get_fragment_shader());
+            glLinkProgram(p);
+            int
+                success;
+            char
+                infoLog[512];
+            glGetProgramiv(p, GL_LINK_STATUS, &success);
+            if (!success) {
+                glGetProgramInfoLog(p, 512, NULL, infoLog);
+                throw(std::runtime_error(   std::string("[SHADER ERROR] : Shader program linkage failed\n") +
+                                            std::string("[LINKAGE ERROR MESSAGE] : \n") + 
+                                            std::string(infoLog)));
+            }
+            program = p;
+        } catch(std::exception &e) {
+            std::cout<<"Shader failed "<<std::endl<<e.what()<<std::endl;
+        }       
     }
 
     // Get

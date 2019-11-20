@@ -1,5 +1,10 @@
 *.a
 *.o
 *.exe
+*.bc
+*.data
+*.html
+*.js
+*.wasm
 Dependencies/
 Assets/

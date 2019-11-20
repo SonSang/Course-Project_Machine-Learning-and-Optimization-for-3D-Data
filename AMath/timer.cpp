@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <omp.h>
+#include <chrono>
 
 std::string name;
 double		start;
@@ -25,7 +25,8 @@ namespace AF {
     }
 
     double timer::get_time() {
-        return omp_get_wtime();
+        auto now = std::chrono::system_clock::now();
+        return (double)(now.time_since_epoch().count()) * 1e+9;
     }
 
     double timer::get_elapsed_time() {

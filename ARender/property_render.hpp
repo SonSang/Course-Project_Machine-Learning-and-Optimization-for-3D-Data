@@ -9,6 +9,7 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include "material.hpp"
+#include <vector>
 #include <functional>
 
 #define USE_DISPLAY_LIST_DEFAULT false

@@ -3,6 +3,7 @@
 #define GL_GLEXT_PROTOTYPES 1   // Needed to use Vertex Array Object.
 #include <SDL2/SDL_opengles2.h>
 namespace AF {
+    using uint = unsigned int;
     // rmesh3
     template<>
     void property_render_geometry<rmesh3>::build_BO() {

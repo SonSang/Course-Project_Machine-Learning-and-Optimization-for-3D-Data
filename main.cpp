@@ -52,7 +52,7 @@ void import_model() {
     
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek Vase 3.obj");
+    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
     ptr->build_BO();
     ptr->get_config().M = ptr->get_config().WIREFRAME;
