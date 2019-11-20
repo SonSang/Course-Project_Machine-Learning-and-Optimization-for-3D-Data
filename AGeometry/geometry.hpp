@@ -40,6 +40,37 @@ namespace AF {
         //void build_obj(const std::string &path);    // Build by [ .obj ] file.
         void clear() noexcept;
     };
+
+    // Triangle.
+    class triangle : public geometry {
+    private:
+        std::array<vec3d, 3> vertices;
+    public:
+        void set_vertices(const std::array<vec3d, 3> &vertices) noexcept;
+        void set_vertices(const vec3d &a, const vec3d &b, const vec3d &c) noexcept;
+        void set_vertex(int i, const vec3d &v);
+
+        const std::array<vec3d, 3>& get_vertices_c() const noexcept;
+        std::array<vec3d, 3>& get_vertices() noexcept;
+        const vec3d& get_vertex_c(int i) const;
+        vec3d& get_vertex(int i);
+    };
+
+    // Sphere.
+    class sphere : public geometry {
+    private:
+        vec3d center;
+        double radius;
+    public:
+        void set_center(const vec3d &C);
+        vec3d& get_center() noexcept;
+        const vec3d& get_center() const noexcept;
+
+        void set_radius(double radius);
+        double get_radius() const noexcept;
+        
+        mesh3 build_mesh3() const noexcept;
+    };
 }
 
 #endif

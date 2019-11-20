@@ -75,12 +75,21 @@ void import_model() {
     // ALWAYS SHADER FIRST!
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
 
-    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
+    // 1. Sphere
+    AF::sphere S;
+    S.set_center(AF::vec3d(0, 0, 0));
+    S.set_radius(5);
+    AF::rmesh3 M;
+    M = S.build_mesh3();
+    ptr->set_geometry(M);
+
+    // 2. Model
+    // ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
     ptr->build_BO();
 
     // Render option
-    //ptr->get_config().M = ptr->get_config().WIREFRAME;
-    ptr->get_config().M = ptr->get_config().PHONG;
+    ptr->get_config().M = ptr->get_config().WIREFRAME;
+    //ptr->get_config().M = ptr->get_config().PHONG;
 
     AF::material material;
     material.set_emmision(AF::color(0, 0, 0));

@@ -13,6 +13,12 @@ namespace AF {
     std::vector<vec2d>& rmesh3::get_textures() noexcept {
         return this->textures;
     }
+    void rmesh3::operator=(const mesh3 &M) noexcept {
+        clear();
+        this->set_vertices(M.get_vertices_c());
+        this->set_normals(M.get_normals_c());
+        this->set_faces(M.get_faces_c());
+    }
     void rmesh3::clear() noexcept {
         mesh3::clear();
         textures.clear();

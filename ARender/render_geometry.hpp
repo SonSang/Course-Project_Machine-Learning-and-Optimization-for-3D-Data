@@ -17,6 +17,8 @@ namespace AF {
         const std::vector<vec2d>& get_textures_c() const noexcept;
         std::vector<vec2d>& get_textures() noexcept;
 
+        void operator=(const mesh3 &M) noexcept;
+
         void build_obj(const std::string &path);    // Build by [ .obj ] file.
         void clear() noexcept;
     };
