@@ -44,9 +44,18 @@ OBJ_REND = $(ODIR_REND)/camera.o 						\
 LIB_REND = $(LDIR_REND)/librend.a
 LD_REND = -L$(LDIR_REND)/ -lrend
 
+# GCC_SR
+DIR_SR = ./ShapeRetrieval
+ODIR_SR = $(DIR_SR)/obj
+LDIR_SR = $(DIR_SR)/lib
+OBJ_SR = 	$(ODIR_SR)/SRsphere.o		\
+			$(ODIR_SR)/SRsphere_tree.o
+LIB_SR = $(LDIR_SR)/libsr.a
+LD_SR = -L$(LDIR_SR)/ -lsr
+
 # TOTAL
-LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND)
-LD = $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) -lGL -lSDL2 -lgomp 
+LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR)
+LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) -lGL -lSDL2 -lgomp 
 
 gcc : $(LIB)
 	$(CC) main.cpp $(LD) $(DEBUG) -o $(TARGET) 
@@ -80,6 +89,16 @@ $(LIB_REND) : $(OBJ_REND)
 	ar rc $(LIB_REND) $^
 
 $(ODIR_REND)/%.o : $(DIR_REND)/%.cpp
+	$(CC) $(DEBUG) -c -o $@ $<
+
+# SHAPE_RETRIEVAL
+gcc_sr : $(OBJ_SR)
+	ar rc $(LIB_SR) $^
+
+$(LIB_SR) : $(OBJ_SR)
+	ar rc $(LIB_SR) $^
+
+$(ODIR_SR)/%.o : $(DIR_SR)/%.cpp
 	$(CC) $(DEBUG) -c -o $@ $<
 
 # ================================================= EMCC
@@ -125,11 +144,17 @@ EMCC_OBJ_REND = $(EMCC_ODIR_REND)/camera.bc 						\
 			$(EMCC_ODIR_REND)/mouse.bc						\
 			$(EMCC_ODIR_REND)/light.bc
 
+# EMCC_SR
+EMCC_ODIR_SR = $(DIR_SR)/$(EMCCDIR)/obj
+EMCC_LDIR_SR = $(DIR_SR)/$(EMCCDIR)/lib
+EMCC_OBJ_SR = $(EMCC_ODIR_SR)/SRsphere.bc					\
+				$(EMCC_ODIR_SR)/SRsphere_tree.bc	
+
 #===============================================================
 
-emcc : $(EMCC_OBJ_MATH) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_REND)
+emcc : $(EMCC_OBJ_MATH) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_REND) $(EMCC_OBJ_SR)
 	$(EMCC) main.cpp -c -o Output/EMCC/main.bc
-	$(EMCC) Output/EMCC/main.bc $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
+	$(EMCC) Output/EMCC/main.bc $(EMCC_OBJ_SR) $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -150,6 +175,12 @@ emcc_rend : $(EMCC_OBJ_REND)
 $(EMCC_ODIR_REND)/%.bc : $(DIR_REND)/%.cpp
 	$(EMCC) -c -o $@ $<
 
+# SR
+emcc_sr : $(EMCC_OBJ_SR)
+
+$(EMCC_ODIR_SR)/%.bc : $(DIR_SR)/%.cpp
+	$(EMCC) -c -o $@ $<
+
 #===============================================================
 
 clean_math :
@@ -164,23 +195,31 @@ clean_rend :
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc
 
+clean_sr :
+	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
+	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc
+
 clean_gcc :
 	rm $(ODIR_MATH)/*.o $(LDIR_MATH)/*.a 	\
 	rm $(ODIR_GEOM)/*.o $(LDIR_GEOM)/*.a	\
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
+	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
 	rm Output/GCC/*.exe
 
 clean_emcc :
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
+	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc
 	rm Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
 
 clean :
 	rm $(ODIR_MATH)/*.o $(LDIR_MATH)/*.a 	\
 	rm $(ODIR_GEOM)/*.o $(LDIR_GEOM)/*.a	\
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
+	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
+	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc		\
 	rm Output/GCC/*.exe Output/EMCC/*.bc Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
