@@ -18,5 +18,5 @@ void main(void)
 
     vec4 result = projection * eye_pos4;
     vec3 result2 = (result.xyz) / result.w;
-    gl_Position = vec4(-result2, 1.0);      // WHY???
+    gl_Position = vec4(result2, 1.0);
 }

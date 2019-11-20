@@ -207,7 +207,7 @@ namespace AF {
         this->projection.set(1, 1, float(cot));
         this->projection.set(2, 2, float(-(far + near) / (far - near)));
         this->projection.set(2, 3, float(-2.0 * (far * near) / (far - near)));
-        this->projection.set(3, 2, float(-1.0));
+        this->projection.set(3, 2, float(1.0));     //@TODO : it works... but why not -1?
     }
 
 
