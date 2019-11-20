@@ -1,7 +1,7 @@
 # ================================================= GCC
 CC = g++ -std=c++17
 DEBUG = -g
-TARGET = main.exe
+TARGET = ./Output/GCC/main.exe
 
 # GCC_MATH
 DIR_MATH = ./AMath
@@ -88,7 +88,7 @@ PL = ./Shader/render_geometry-vert.glsl ./Shader/render_geometry-frag.glsl		# Fi
 EMPL = --preload-file ./Shader/render_geometry-vert.glsl 	\
 		--preload-file ./Shader/render_geometry-frag.glsl	\
 		--preload-file ./Assets/Greek_Vase/Greek_Vase_3.obj
-EMTARGET = main.html
+EMTARGET = ./Output/EMCC/main.html
 EMCCDIR = emcc
 
 # EMCC_MATH
@@ -124,8 +124,8 @@ EMCC_OBJ_REND = $(EMCC_ODIR_REND)/camera.bc 						\
 #===============================================================
 
 emcc : $(EMCC_OBJ_MATH) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_REND)
-	$(EMCC) main.cpp -c -o main.bc
-	$(EMCC) main.bc $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
+	$(EMCC) main.cpp -c -o Output/EMCC/main.bc
+	$(EMCC) Output/EMCC/main.bc $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -164,13 +164,13 @@ clean_gcc :
 	rm $(ODIR_MATH)/*.o $(LDIR_MATH)/*.a 	\
 	rm $(ODIR_GEOM)/*.o $(LDIR_GEOM)/*.a	\
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
-	rm *.exe
+	rm Output/GCC/*.exe
 
 clean_emcc :
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
-	rm *.wasm rm *.js *.html *.data
+	rm Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
 
 clean :
 	rm $(ODIR_MATH)/*.o $(LDIR_MATH)/*.a 	\
@@ -179,4 +179,4 @@ clean :
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
-	rm *.exe *.bc *.wasm rm *.js *.html *.data
+	rm Output/GCC/*.exe Output/EMCC/*.bc Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
