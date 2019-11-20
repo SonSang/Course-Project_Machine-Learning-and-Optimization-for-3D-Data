@@ -100,6 +100,7 @@ namespace AF {
                                             std::string(infoLog)));
             }
             program = p;
+            std::cout<<"Shader success : " << program <<std::endl;
         } catch(std::exception &e) {
             std::cout<<"Shader failed "<<std::endl<<e.what()<<std::endl;
         }       

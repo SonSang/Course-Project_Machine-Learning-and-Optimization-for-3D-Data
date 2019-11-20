@@ -1,7 +1,6 @@
 #include "property_render_geometry.hpp"
 
-#define GL_GLEXT_PROTOTYPES 1   // Needed to use Vertex Array Object.
-#include <SDL2/SDL_opengles2.h>
+#include <iostream>
 namespace AF {
     using uint = unsigned int;
     // rmesh3
@@ -28,6 +27,7 @@ namespace AF {
             }
         }
 
+        
         // Position
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * size, vertices, GL_STATIC_DRAW);    // @BUGFIX : sizeof(ptr) returns 8!
@@ -35,6 +35,7 @@ namespace AF {
         glEnableVertexAttribArray(attrib);
         glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+        
         // Normal
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * size, normals, GL_STATIC_DRAW);
@@ -120,4 +121,5 @@ namespace AF {
     void property_render_geometry<rmesh3>::render_ui() {
         return;
     }
+    
 }

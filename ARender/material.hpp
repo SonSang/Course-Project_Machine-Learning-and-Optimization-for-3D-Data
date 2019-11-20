@@ -12,11 +12,21 @@ namespace AF {
     private:
         color emmision;
         color ambient;
-        color diffusion;
+        color diffuse;
         color specular;
         double shininess;
     public:
-        
+        void set_emmision(const color &c);
+        void set_ambient(const color &c);
+        void set_diffuse(const color &c);
+        void set_specular(const color &c);
+        void set_shininess(double sh);
+
+        color get_emmision() const noexcept;
+        color get_ambient() const noexcept;
+        color get_diffuse() const noexcept;
+        color get_specular() const noexcept;
+        double get_shininess() const noexcept;
     };
 }
 

@@ -39,7 +39,8 @@ OBJ_REND = $(ODIR_REND)/camera.o 						\
 			$(ODIR_REND)/scene_manager.o 				\
 			$(ODIR_REND)/shader.o 						\
 			$(ODIR_REND)/texture.o 						\
-			$(ODIR_REND)/mouse.o 						
+			$(ODIR_REND)/mouse.o 						\
+			$(ODIR_REND)/light.o
 LIB_REND = $(LDIR_REND)/librend.a
 LD_REND = -L$(LDIR_REND)/ -lrend
 
@@ -121,7 +122,8 @@ EMCC_OBJ_REND = $(EMCC_ODIR_REND)/camera.bc 						\
 			$(EMCC_ODIR_REND)/scene_manager.bc 				\
 			$(EMCC_ODIR_REND)/shader.bc 						\
 			$(EMCC_ODIR_REND)/texture.bc 					\
-			$(EMCC_ODIR_REND)/mouse.bc
+			$(EMCC_ODIR_REND)/mouse.bc						\
+			$(EMCC_ODIR_REND)/light.bc
 
 #===============================================================
 

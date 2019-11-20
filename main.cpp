@@ -72,10 +72,31 @@ void import_model() {
     
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
+    // ALWAYS SHADER FIRST!
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
+
+    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
     ptr->build_BO();
-    ptr->get_config().M = ptr->get_config().WIREFRAME;
+
+    // Render option
+    //ptr->get_config().M = ptr->get_config().WIREFRAME;
+    ptr->get_config().M = ptr->get_config().PHONG;
+
+    AF::material material;
+    material.set_emmision(AF::color(0, 0, 0));
+    material.set_ambient(AF::color(0.2, 0.2, 0.2));
+    material.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    material.set_specular(AF::color(1.0, 1.0, 1.0));
+    material.set_shininess(100);    
+    ptr->shader_set_material(material);
+    
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+    ptr->shader_set_light_point(light);
+    
     SM.add_object_property(cobj->get_id(), ptr);
 }
 
