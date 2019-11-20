@@ -26,7 +26,6 @@ namespace AF {
                 vertices[3 * i + j] = (float)geometry.get_vertices_c()[i][j];
                 normals[3 * i + j] = (float)geometry.get_normals_c()[i][j];
             }
-            vertices[3 * i + 2] = 0.0f;
         }
 
         // Position

@@ -20,6 +20,7 @@
 #endif
 
 #include "ARender/scene_manager.hpp"
+#include "ARender/mouse.hpp"
 #include "ARender/property_render_geometry.hpp"
 #include <iostream>
 
@@ -29,6 +30,7 @@ void main_loop() { loop(); }
 int wnd_width = 640, wnd_height = 480;
 
 AF::camera          MC;     // Main Camera
+AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
 
 void init_camera() {
@@ -42,6 +44,24 @@ void resize(int width, int height) {
     wnd_height = height;
     glViewport(0, 0, wnd_width, wnd_height);
     MC.update_proj(wnd_width, wnd_height);
+}
+
+void mouse_event(const SDL_Event &e) {
+    if(e.button.type == SDL_MOUSEBUTTONDOWN) {
+        if(e.button.button == SDL_BUTTON_RIGHT) 
+            MM.set_rpressed(true);
+    }
+    else if(e.button.type == SDL_MOUSEBUTTONUP) {
+        if(e.button.button == SDL_BUTTON_RIGHT) {
+            MM.set_rpressed(false);
+            MM.set_first_mouse(true);
+        }  
+    }
+    else if(e.button.type == SDL_MOUSEMOTION) {
+        if (MM.get_rpressed()) {
+			MM.move_camera(MC, e.button.x, e.button.y);	// mouse right button to change camera angle.
+		}
+    }
 }
 
 void import_model() {
@@ -100,6 +120,7 @@ int main(int argc, char** argv)
         SDL_Event e;
         while(SDL_PollEvent(&e))
         {
+            mouse_event(e);
             if(e.type == SDL_WINDOWEVENT) {
                 switch(e.window.event) {
                 case SDL_WINDOWEVENT_RESIZED:
