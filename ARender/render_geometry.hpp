@@ -22,6 +22,20 @@ namespace AF {
         void build_obj(const std::string &path);    // Build by [ .obj ] file.
         void clear() noexcept;
     };
+
+    // class rmesh : public mesh {
+    // private:
+    //     std::vector<vec2d> textures;    // Texture coordinates for each vertices.
+    // public:
+    //     void set_textures(const std::vector<vec2d> &textures) noexcept;
+    //     const std::vector<vec2d>& get_textures_c() const noexcept;
+    //     std::vector<vec2d>& get_textures() noexcept;
+
+    //     void operator=(const mesh &M) noexcept;
+
+    //     void build_obj(const std::string &path);    // Build by [ .obj ] file.
+    //     void clear() noexcept;
+    // };
 }
 
 #endif

@@ -91,6 +91,7 @@ void import_model() {
     // ptr->set_geometry(M);
 
     // 2. Model
+    //ptr->get_geometry().build_obj("./Assets/val/02958343/model_000009.obj");
     ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
     ptr->get_geometry().scale_norm();
 
@@ -212,6 +213,14 @@ int main(int argc, char** argv)
                             model->get_config().M = model->get_config_c().WIREFRAME;
                         else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
                             model->get_config().M = model->get_config_c().PHONG;
+                    }
+                    else if(e.key.keysym.scancode == SDL_SCANCODE_F3) {     // Compute normal
+                        model->get_geometry().compute_normals();
+                        model->build_BO();
+                    }
+                    else if(e.key.keysym.scancode == SDL_SCANCODE_F4) {     // Reverse normal
+                        model->get_geometry().reverse_normals();
+                        model->build_BO();
                     }
                     break;
                 case SDL_QUIT:
