@@ -24,6 +24,11 @@
 #include "ARender/property_render_geometry.hpp"
 #include <iostream>
 
+// Imgui
+#include "Dependencies/imgui/imgui.h"
+#include "Dependencies/imgui/examples/imgui_impl_sdl.h"
+#include "Dependencies/imgui/examples/imgui_impl_opengl3.h"
+
 std::function<void()> loop;
 void main_loop() { loop(); }
 
@@ -32,6 +37,8 @@ int wnd_width = 640, wnd_height = 480;
 AF::camera          MC;     // Main Camera
 AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
+
+std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model;
 
 void init_camera() {
     MC.set_position(0, 0, 1);
@@ -64,7 +71,50 @@ void mouse_event(const SDL_Event &e) {
     }
 }
 
-std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model;
+void window_event(const SDL_Event &e, bool &done) {
+    if(e.type == SDL_WINDOWEVENT) {
+        if(e.window.event == SDL_WINDOWEVENT_CLOSE)
+            done = true;
+        else if(e.window.event == SDL_WINDOWEVENT_RESIZED)
+            resize(e.window.data1, e.window.data2);
+    }
+}
+
+void keyboard_event(const SDL_Event &e, bool &done) {
+    switch(e.type) {
+    case SDL_KEYDOWN:
+        if(e.key.keysym.sym == 119) {   // W
+            MC.move_back_forth(1);
+        }
+        else if(e.key.keysym.sym == 115) {   // S
+            MC.move_back_forth(-1);
+        }
+        else if(e.key.keysym.sym == 97) {   // A
+            MC.move_left_right(-1);
+        }
+        else if(e.key.keysym.sym == 100) {   // D
+            MC.move_left_right(1);
+        }
+        else if(e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+            done = true;
+        }
+        else if(e.key.keysym.scancode == SDL_SCANCODE_F2) {     // Change render mode
+            if(model->get_config_c().M == model->get_config_c().PHONG)
+                model->get_config().M = model->get_config_c().WIREFRAME;
+            else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
+                model->get_config().M = model->get_config_c().PHONG;
+        }
+        else if(e.key.keysym.scancode == SDL_SCANCODE_F3) {     // Compute normal
+            model->get_geometry().compute_normals();
+            model->build_BO();
+        }
+        else if(e.key.keysym.scancode == SDL_SCANCODE_F4) {     // Reverse normal
+            model->get_geometry().reverse_normals();
+            model->build_BO();
+        }
+    }
+}
+
 void import_model() {
     std::shared_ptr<AF::object>
 		cobj = std::make_shared<AF::object>("Model");
@@ -146,6 +196,7 @@ int main(int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);  // Anti-alising.
@@ -176,65 +227,67 @@ int main(int argc, char** argv)
 
     glEnable(GL_DEPTH_TEST);
 
+    // Setup ImGui.
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
+    // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
+    io.IniFilename = NULL;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer bindings
+    ImGui_ImplSDL2_InitForOpenGL(window, glc);
+    ImGui_ImplOpenGL3_Init();
+
+    // Main loop.
+    bool done = false;
+    bool show_demo_window = true;
     loop = [&]
     {
-        SDL_Event e;
-        while(SDL_PollEvent(&e))
+        // Poll and handle events (inputs, window resize, etc.)
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
         {
-            mouse_event(e);
-            if(e.type == SDL_WINDOWEVENT) {
-                switch(e.window.event) {
-                case SDL_WINDOWEVENT_RESIZED:
-                    resize(e.window.data1, e.window.data2);
-                    break;
-                }
-            }
-            else {
-                switch(e.type) {
-                case SDL_KEYDOWN:
-                    if(e.key.keysym.sym == 119) {   // W
-                        MC.move_back_forth(1);
-                    }
-                    else if(e.key.keysym.sym == 115) {   // S
-                        MC.move_back_forth(-1);
-                    }
-                    else if(e.key.keysym.sym == 97) {   // A
-                        MC.move_left_right(-1);
-                    }
-                    else if(e.key.keysym.sym == 100) {   // D
-                        MC.move_left_right(1);
-                    }
-                    else if(e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-                        std::terminate();
-                        break;
-                    }
-                    else if(e.key.keysym.scancode == SDL_SCANCODE_F2) {     // Change render mode
-                        if(model->get_config_c().M == model->get_config_c().PHONG)
-                            model->get_config().M = model->get_config_c().WIREFRAME;
-                        else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
-                            model->get_config().M = model->get_config_c().PHONG;
-                    }
-                    else if(e.key.keysym.scancode == SDL_SCANCODE_F3) {     // Compute normal
-                        model->get_geometry().compute_normals();
-                        model->build_BO();
-                    }
-                    else if(e.key.keysym.scancode == SDL_SCANCODE_F4) {     // Reverse normal
-                        model->get_geometry().reverse_normals();
-                        model->build_BO();
-                    }
-                    break;
-                case SDL_QUIT:
-                    std::terminate();
-                    break;
-                }
-            }
+            ImGui_ImplSDL2_ProcessEvent(&event);
+            if (event.type == SDL_QUIT)
+                done = true;
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+                done = true;
+            mouse_event(event);
+            window_event(event, done);
+            keyboard_event(event, done);
         }
 
+        // Start the Dear ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame(window);
+        ImGui::NewFrame();
+
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+#ifdef __EMSCRIPTEN__
+#else
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+#endif
+
+        // Rendering
+        ImGui::Render();
+#ifdef __EMSCRIPTEN__
+        SDL_GL_MakeCurrent(window, glc);
+#endif
         // Clear the screen to black
         glClearColor(1.0f, 0.8f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         SM.render(MC);        
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         SDL_GL_SwapWindow(window);
     };
@@ -242,8 +295,16 @@ int main(int argc, char** argv)
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, true);
 #else
-    while(true) 
+    while(!done) 
         main_loop();
+    
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_GL_DeleteContext(glc);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 #endif
 
     return 0;

@@ -54,9 +54,22 @@ OBJ_SR = 	$(ODIR_SR)/SRsphere.o		\
 LIB_SR = $(LDIR_SR)/libsr.a
 LD_SR = -L$(LDIR_SR)/ -lsr
 
+# GCC_IMGUI
+DIR_IMGUI = ./Dependencies/imgui
+ODIR_IMGUI = $(DIR_IMGUI)/obj
+LDIR_IMGUI = $(DIR_IMGUI)/lib
+OBJ_IMGUI = $(ODIR_IMGUI)/imgui.o	\
+			$(ODIR_IMGUI)/imgui_demo.o 	\
+			$(ODIR_IMGUI)/imgui_draw.o 	\
+			$(ODIR_IMGUI)/imgui_widgets.o	\
+			$(ODIR_IMGUI)/imgui_impl_sdl.o 	\
+			$(ODIR_IMGUI)/imgui_impl_opengl3.o
+LIB_IMGUI = $(LDIR_IMGUI)/libimgui.a
+LD_IMGUI = -L$(LDIR_IMGUI)/ -limgui
+
 # TOTAL
-LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR)
-LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) -lGL -lSDL2 -lgomp 
+LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)
+LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) -lGL -lSDL2 -lgomp 
 
 gcc : $(LIB)
 	$(CC) main.cpp $(LD) $(DEBUG) -o $(TARGET) 
@@ -101,6 +114,19 @@ $(LIB_SR) : $(OBJ_SR)
 
 $(ODIR_SR)/%.o : $(DIR_SR)/%.cpp
 	$(CC) $(DEBUG) -c -o $@ $<
+
+# IMGUI
+gcc_imgui : $(OBJ_IMGUI)
+	ar rc $(LIB_IMGUI) $^
+
+$(LIB_IMGUI) : $(OBJ_IMGUI)
+	ar rc $(LIB_IMGUI) $^
+
+$(ODIR_IMGUI)/%.o : ./Dependencies/imgui/%.cpp 
+	$(CC) $(DEBUG) -c -o $@ $<
+
+$(ODIR_IMGUI)/%.o : ./Dependencies/imgui/examples/%.cpp 
+	$(CC) $(DEBUG) -I./Dependencies/imgui -c -o $@ $<
 
 # ================================================= EMCC
 
@@ -152,11 +178,20 @@ EMCC_LDIR_SR = $(DIR_SR)/$(EMCCDIR)/lib
 EMCC_OBJ_SR = $(EMCC_ODIR_SR)/SRsphere.bc					\
 				$(EMCC_ODIR_SR)/SRsphere_tree.bc	
 
+# EMCC_IMGUI
+EMCC_ODIR_IMGUI = $(DIR_IMGUI)/$(EMCCDIR)/obj
+EMCC_OBJ_IMGUI = $(EMCC_ODIR_IMGUI)/imgui.bc	\
+			$(EMCC_ODIR_IMGUI)/imgui_demo.bc 	\
+			$(EMCC_ODIR_IMGUI)/imgui_draw.bc 	\
+			$(EMCC_ODIR_IMGUI)/imgui_widgets.bc	\
+			$(EMCC_ODIR_IMGUI)/imgui_impl_sdl.bc 	\
+			$(EMCC_ODIR_IMGUI)/imgui_impl_opengl3.bc
+
 #===============================================================
 
-emcc : $(EMCC_OBJ_MATH) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_REND) $(EMCC_OBJ_SR)
+emcc : $(EMCC_OBJ_MATH) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_REND) $(EMCC_OBJ_SR) $(EMCC_OBJ_IMGUI)
 	$(EMCC) main.cpp -c -o Output/EMCC/main.bc
-	$(EMCC) Output/EMCC/main.bc $(EMCC_OBJ_SR) $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
+	$(EMCC) Output/EMCC/main.bc $(EMCC_OBJ_IMGUI) $(EMCC_OBJ_SR) $(EMCC_OBJ_REND) $(EMCC_OBJ_GEOM) $(EMCC_OBJ_MATH) -o $(EMTARGET) $(EMPL)
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -183,6 +218,15 @@ emcc_sr : $(EMCC_OBJ_SR)
 $(EMCC_ODIR_SR)/%.bc : $(DIR_SR)/%.cpp
 	$(EMCC) -c -o $@ $<
 
+# IMGUI
+emcc_imgui : $(EMCC_OBJ_IMGUI)
+
+$(EMCC_ODIR_IMGUI)/%.bc : ./Dependencies/imgui/%.cpp
+	$(EMCC) -c -o $@ $<
+
+$(EMCC_ODIR_IMGUI)/%.bc : ./Dependencies/imgui/examples/%.cpp
+	$(EMCC) -c -o $@ $< -I./Dependencies/imgui
+
 #===============================================================
 
 clean_math :
@@ -201,18 +245,24 @@ clean_sr :
 	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
 	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc
 
+clean_imgui :
+	rm $(ODIR_IMGUI)/*.o $(LDIR_IMGUI)/*.a 	\
+	rm $(EMCC_ODIR_IMGUI)/*.bc
+
 clean_gcc :
 	rm $(ODIR_MATH)/*.o $(LDIR_MATH)/*.a 	\
 	rm $(ODIR_GEOM)/*.o $(LDIR_GEOM)/*.a	\
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
 	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
+	rm $(ODIR_IMGUI)/*.o $(LDIR_IMGUI)/*.a 	\
 	rm Output/GCC/*.exe
 
 clean_emcc :
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
-	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc
+	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc		\
+	rm $(EMCC_ODIR_IMGUI)/*.bc							\
 	rm Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
 
 clean :
@@ -220,8 +270,10 @@ clean :
 	rm $(ODIR_GEOM)/*.o $(LDIR_GEOM)/*.a	\
 	rm $(ODIR_REND)/*.o $(LDIR_REND)/*.a	\
 	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
+	rm $(ODIR_IMGUI)/*.o $(LDIR_IMGUI)/*.a 	\
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
 	rm $(EMCC_ODIR_GEOM)/*.bc $(EMCC_LDIR_GEOM)/*.bc	\
 	rm $(EMCC_ODIR_REND)/*.bc $(EMCC_LDIR_REND)/*.bc	\
 	rm $(EMCC_ODIR_SR)/*.bc $(EMCC_LDIR_SR)/*.bc		\
+	rm $(EMCC_ODIR_IMGUI)/*.bc							\
 	rm Output/GCC/*.exe Output/EMCC/*.bc Output/EMCC/*.wasm Output/EMCC/*.js Output/EMCC/*.html Output/EMCC/*.data
