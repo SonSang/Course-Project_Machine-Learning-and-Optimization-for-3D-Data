@@ -14,6 +14,8 @@ namespace AF {
     class geometry {
     };
 
+    class box;
+
     // Triangular mesh.
     class mesh3 : public geometry {
     public:
@@ -37,6 +39,11 @@ namespace AF {
         std::vector<vec3d>& get_normals() noexcept;
         std::vector<face>& get_faces() noexcept;
 
+        box build_bounding_box() const;   // Build bounding box that encompasses all the points in this mesh.
+
+        void scale(double size);            // Using bounding box, change scale of this mesh to [ size ].
+        void scale_norm();                  // scale(1)
+
         //void build_obj(const std::string &path);    // Build by [ .obj ] file.
         void clear() noexcept;
     };
@@ -54,6 +61,9 @@ namespace AF {
         std::array<vec3d, 3>& get_vertices() noexcept;
         const vec3d& get_vertex_c(int i) const;
         vec3d& get_vertex(int i);
+
+        // @ccw : Assume vertices are defined in couter clockwise order.
+        vec3d normal(bool ccw = true) const;
     };
 
     // Sphere.
@@ -69,6 +79,32 @@ namespace AF {
         void set_radius(double radius);
         double get_radius() const noexcept;
         
+        mesh3 build_mesh3() const noexcept;
+    };
+
+    // Box (AABB).
+    class box : public geometry {
+    private:
+        vec3d min = {1e+10, 1e+10, 1e+10};
+        vec3d max = {-1e+10, -1e+10, -1e+10};
+    public:
+        void set_min_x(double xmin);
+        void set_min_y(double ymin);
+        void set_min_z(double zmin);
+        void set_max_x(double xmax);
+        void set_max_y(double ymax);
+        void set_max_z(double zmax);
+        void insert(const vec3d &v);    // Update [ min ], [ max ] by a vector [ v ].
+
+        double get_min_x() const noexcept;
+        double get_min_y() const noexcept;
+        double get_min_z() const noexcept;
+        double get_max_x() const noexcept;
+        double get_max_y() const noexcept;
+        double get_max_z() const noexcept;
+
+        double diagonal_length() const noexcept;    // distance between min, max.
+
         mesh3 build_mesh3() const noexcept;
     };
 }

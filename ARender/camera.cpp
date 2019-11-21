@@ -201,13 +201,13 @@ namespace AF {
     }
     void camera::projection_persp(double fovy, double aspect, double near, double far) {
         double
-            cot = 1.0 / tan(fovy * 0.5);
+            cot = 1.0 / tan(deg2rad(fovy) * 0.5);
         this->projection.clear();
         this->projection.set(0, 0, float(cot / aspect));
         this->projection.set(1, 1, float(cot));
         this->projection.set(2, 2, float(-(far + near) / (far - near)));
         this->projection.set(2, 3, float(-2.0 * (far * near) / (far - near)));
-        this->projection.set(3, 2, float(1.0));     //@TODO : it works... but why not -1?
+        this->projection.set(3, 2, float(-1.0));     //@TODO : it works... but why not -1?
     }
 
 

@@ -33,10 +33,12 @@ namespace AF {
     }
     void rmesh3::build_obj(const std::string &path) {
         objl::Loader loader;
+        std::cout<<"Loading .OBJ file : "<<path<<"..."<<std::endl;
         if(!loader.LoadFile(path)) {
             std::cerr<<"Error in reading .obj file at : "<<path<<std::endl;
             return;
         }
+        std::cout<<"Loaded .OBJ file : "<<path<<std::endl;
         
         clear();
         // Set vertex, normal and texture info.
@@ -49,9 +51,9 @@ namespace AF {
         // Set face info.
         for(auto it = loader.LoadedIndices.begin(); it != loader.LoadedIndices.end(); ) {
             face nface;
-            nface[0] = (*it++);
-            nface[1] = (*it++);
-            nface[2] = (*it++);
+            nface[0] = (*it++); if(it == loader.LoadedIndices.end()) break;
+            nface[1] = (*it++); if(it == loader.LoadedIndices.end()) break;
+            nface[2] = (*it++); // @TEMPORARY BUGFIX : Not triangle?
             this->faces.push_back(nface);
         }
     }

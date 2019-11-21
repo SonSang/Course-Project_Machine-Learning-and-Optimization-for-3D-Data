@@ -19,6 +19,5 @@ void main(void)
     eye_normal = normalize(MV * tmp_normal).xyz;
 
     vec4 result = projection * eye_pos4;
-    vec3 result2 = (result.xyz) / result.w;
-    gl_Position = vec4(result2, 1.0);
+    gl_Position = result;
 }

@@ -29,7 +29,7 @@ namespace AF {
 
         // near, far plane
         double near_plane = 0.1;
-        double far_plane = 10000;		// to reduce flickering,
+        double far_plane = 100;		// to reduce flickering,
                                         // enlarge near plane value.
 
         // background color

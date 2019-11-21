@@ -32,6 +32,24 @@ namespace AF {
     std::vector<mesh3::face>& mesh3::get_faces() noexcept {
         return faces;
     }
+    
+    box mesh3::build_bounding_box() const {
+        box ret;
+        for(auto it = vertices.begin(); it != vertices.end(); it++)
+            ret.insert(*it);
+        return ret;
+    }
+    void mesh3::scale(double size) {
+        box BB = build_bounding_box();
+        double DL = BB.diagonal_length();
+        double ratio = size / DL;
+        for(auto it = vertices.begin(); it != vertices.end(); it++)
+            *it = (*it) * ratio;
+    }
+    void mesh3::scale_norm() {
+        scale(1);
+    }
+
     void mesh3::clear() noexcept {
         this->vertices.clear();
         this->normals.clear();
@@ -61,6 +79,14 @@ namespace AF {
     }
     vec3d& triangle::get_vertex(int i) {
         return vertices.at(i);
+    }
+    vec3d triangle::normal(bool ccw) const {
+        vec3d
+            a_b = vertices[0] - vertices[1],
+            c_b = vertices[2] - vertices[1],
+            norm = (ccw ? c_b.cross(a_b) : a_b.cross(c_b));
+        norm.normalize();
+        return norm;
     }
 
     // Sphere
@@ -164,6 +190,166 @@ namespace AF {
 
             ret.get_faces().push_back(nf);
         }
+
+        return ret;
+    }
+
+    // box
+    void box::set_min_x(double xmin) {
+        min[0] = xmin;
+    }
+    void box::set_min_y(double ymin) {
+        min[1] = ymin;
+    }
+    void box::set_min_z(double zmin) {
+        min[2] = zmin;
+    }
+    void box::set_max_x(double xmax) {
+        max[0] = xmax;
+    }
+    void box::set_max_y(double ymax) {
+        max[1] = ymax;
+    }
+    void box::set_max_z(double zmax) {
+        max[2] = zmax;
+    }
+    void box::insert(const vec3d &v) {
+        if(v[0] < min[0]) set_min_x(v[0]);
+        if(v[1] < min[1]) set_min_y(v[1]);
+        if(v[2] < min[2]) set_min_z(v[2]);
+        
+        if(v[0] > max[0]) set_max_x(v[0]);
+        if(v[1] > max[1]) set_max_y(v[1]);
+        if(v[2] > max[2]) set_max_z(v[2]);
+    }
+
+    double box::get_min_x() const noexcept {
+        return min[0];
+    }
+    double box::get_min_y() const noexcept {
+        return min[1];
+    }
+    double box::get_min_z() const noexcept {
+        return min[2];
+    }
+    double box::get_max_x() const noexcept {
+        return max[0];
+    }
+    double box::get_max_y() const noexcept {
+        return max[1];
+    }
+    double box::get_max_z() const noexcept {
+        return max[2];
+    }
+    double box::diagonal_length() const noexcept {
+        return (max - min).len();
+    }
+    mesh3 box::build_mesh3() const noexcept {
+        mesh3 ret;
+
+        std::vector<vec3d> &vertices = ret.get_vertices();
+        std::vector<vec3d> &normals = ret.get_normals();
+        // 0, 1, 2
+        vertices.push_back(vec3d(min[0], min[1], min[2]));
+        normals.push_back(vec3d(0, -1, 0));
+        vertices.push_back(vec3d(min[0], min[1], min[2]));
+        normals.push_back(vec3d(-1, 0, 0));
+        vertices.push_back(vec3d(min[0], min[1], min[2]));
+        normals.push_back(vec3d(0, 0, -1));
+
+        // 3, 4, 5
+        vertices.push_back(vec3d(max[0], min[1], min[2]));
+        normals.push_back(vec3d(0, -1, 0));
+        vertices.push_back(vec3d(max[0], min[1], min[2]));
+        normals.push_back(vec3d(1, 0, 0));
+        vertices.push_back(vec3d(max[0], min[1], min[2]));
+        normals.push_back(vec3d(0, 0, -1));
+
+        // 6, 7, 8
+        vertices.push_back(vec3d(max[0], min[1], max[2]));
+        normals.push_back(vec3d(0, -1, 0));
+        vertices.push_back(vec3d(max[0], min[1], max[2]));
+        normals.push_back(vec3d(1, 0, 0));
+        vertices.push_back(vec3d(max[0], min[1], max[2]));
+        normals.push_back(vec3d(0, 0, 1));
+
+        // 9, 10, 11
+        vertices.push_back(vec3d(min[0], min[1], max[2]));
+        normals.push_back(vec3d(0, -1, 0));
+        vertices.push_back(vec3d(min[0], min[1], max[2]));
+        normals.push_back(vec3d(-1, 0, 0));
+        vertices.push_back(vec3d(min[0], min[1], max[2]));
+        normals.push_back(vec3d(0, 0, 1));
+
+        // 12, 13, 14
+        vertices.push_back(vec3d(min[0], max[1], min[2]));
+        normals.push_back(vec3d(0, 1, 0));
+        vertices.push_back(vec3d(min[0], max[1], min[2]));
+        normals.push_back(vec3d(-1, 0, 0));
+        vertices.push_back(vec3d(min[0], max[1], min[2]));
+        normals.push_back(vec3d(0, 0, -1));
+
+        // 15, 16, 17
+        vertices.push_back(vec3d(max[0], max[1], min[2]));
+        normals.push_back(vec3d(0, 1, 0));
+        vertices.push_back(vec3d(max[0], max[1], min[2]));
+        normals.push_back(vec3d(1, 0, 0));
+        vertices.push_back(vec3d(max[0], max[1], min[2]));
+        normals.push_back(vec3d(0, 0, -1));
+
+        // 18, 19, 20
+        vertices.push_back(vec3d(max[0], max[1], max[2]));
+        normals.push_back(vec3d(0, 1, 0));
+        vertices.push_back(vec3d(max[0], max[1], max[2]));
+        normals.push_back(vec3d(1, 0, 0));
+        vertices.push_back(vec3d(max[0], max[1], max[2]));
+        normals.push_back(vec3d(0, 0, 1));
+
+        // 21, 22, 23
+        vertices.push_back(vec3d(min[0], max[1], max[2]));
+        normals.push_back(vec3d(0, 1, 0));
+        vertices.push_back(vec3d(min[0], max[1], max[2]));
+        normals.push_back(vec3d(-1, 0, 0));
+        vertices.push_back(vec3d(min[0], max[1], max[2]));
+        normals.push_back(vec3d(0, 0, 1));
+
+        // Faces
+        std::vector<mesh3::face> &faces = ret.get_faces();
+        mesh3::face front[2];
+        front[0][0] = 0; front[0][1] = 3; front[0][2] = 9;
+        front[1][0] = 9; front[1][1] = 3; front[1][2] = 6;
+        faces.push_back(front[0]);
+        faces.push_back(front[1]);
+
+        mesh3::face back[2];
+        back[0][0] = 21; back[0][1] = 15; back[0][2] = 12;
+        back[1][0] = 21; back[1][1] = 18; back[1][2] = 15;
+        faces.push_back(back[0]);
+        faces.push_back(back[1]);
+
+        mesh3::face left[2];
+        left[0][0] = 10; left[0][1] = 13; left[0][2] = 1;
+        left[1][0] = 22; left[1][1] = 13; left[1][2] = 10;
+        faces.push_back(left[0]);
+        faces.push_back(left[1]);
+
+        mesh3::face right[2];
+        right[0][0] = 7; right[0][1] = 4; right[0][2] = 16;
+        right[1][0] = 19; right[1][1] = 7; right[1][2] = 16;
+        faces.push_back(right[0]);
+        faces.push_back(right[1]);
+
+        mesh3::face up[2];
+        up[0][0] = 23; up[0][1] = 11; up[0][2] = 8;
+        up[1][0] = 23; up[1][1] = 8; up[1][2] = 20;
+        faces.push_back(up[0]);
+        faces.push_back(up[1]);
+
+        mesh3::face down[2];
+        down[0][0] = 2; down[0][1] = 5; down[0][2] = 14;
+        down[1][0] = 5; down[1][1] = 17; down[1][2] = 14;
+        faces.push_back(down[0]);
+        faces.push_back(down[1]);
 
         return ret;
     }
