@@ -80,39 +80,6 @@ namespace AF {
         this->faces.clear();
     }
 
-    // mesh
-    // void mesh::set_faces4(const std::vector<face4> &faces) noexcept {
-    //     this->faces4 = faces;
-    // }
-    // const std::vector<mesh::face4>& mesh::get_faces4_c() const noexcept {
-    //     return faces4;
-    // }
-    // std::vector<mesh::face4>& mesh::get_faces4() noexcept {
-    //     return faces4;
-    // }
-    // void mesh::compute_normals() {
-    //     mesh3::compute_normals();
-    //     for(auto it = faces4.begin(); it != faces4.end(); it++) {
-    //         const vec3d 
-    //             &a = vertices.at((*it)[0]),
-    //             &b = vertices.at((*it)[1]),
-    //             &c = vertices.at((*it)[2]),
-    //             &d = vertices.at((*it)[3]);
-    //         triangle T;
-    //         T.set_vertices(a, b, c);
-    //         vec3d
-    //             N = T.normal();
-    //         normals.at((*it)[0]) = N;
-    //         normals.at((*it)[1]) = N;
-    //         normals.at((*it)[2]) = N;
-    //         normals.at((*it)[3]) = N;
-    //     }
-    // }
-    // void mesh::clear() noexcept {
-    //     mesh3::clear();
-    //     faces4.clear();
-    // }
-
     // Triangle
     void triangle::set_vertices(const std::array<vec3d, 3> &vertices) noexcept {
         this->vertices = vertices;

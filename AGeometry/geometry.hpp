@@ -51,21 +51,6 @@ namespace AF {
         virtual void clear() noexcept;
     };
 
-    // // General mesh
-    // class mesh : public mesh3 {
-    // public:
-    //     using face4 = std::array<unsigned int, 4>;
-    // protected:
-    //     std::vector<face4> faces4;
-    // public:
-    //     void set_faces4(const std::vector<face4> &faces) noexcept;
-    //     const std::vector<face4>& get_faces4_c() const noexcept;
-    //     std::vector<face4>& get_faces4() noexcept;
-
-    //     virtual void compute_normals();
-    //     virtual void clear() noexcept;
-    // };
-
     // Triangle.
     class triangle : public geometry {
     private:
