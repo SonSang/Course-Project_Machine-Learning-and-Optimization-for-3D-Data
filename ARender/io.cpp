@@ -30,6 +30,9 @@ namespace AF {
     std::vector<std::string> IO::read_text_multi(const std::string &path) {
         std::ifstream
             ifs = open(path);
+        if(!ifs.is_open()) {
+            throw std::invalid_argument("Invalid path name : " + path);
+        }
         std::vector<std::string>
             ret;
         while (!ifs.eof()) {

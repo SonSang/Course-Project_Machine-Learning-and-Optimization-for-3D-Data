@@ -49,6 +49,8 @@ lowp vec3 apply_light_point() {
 
     // Diffuse.
     mediump vec3 normal = normalize(eye_normal);
+    if(!gl_FrontFacing)
+        normal = normal * -1.0;
     mediump vec3 lightdirraw = ML.position.xyz - eye_position;
     mediump vec3 lightdir = normalize(lightdirraw);
     mediump float diffuse_factor = max(dot(normal, lightdir), 0.0);

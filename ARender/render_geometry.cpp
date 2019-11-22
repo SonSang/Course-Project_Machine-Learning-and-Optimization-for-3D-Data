@@ -30,6 +30,8 @@ namespace AF {
     void rmesh3::build_obj(const std::string &path) {
         obj_loader loader;
         std::cout<<"Loading .OBJ file : "<<path<<"..."<<std::endl;
+        if(path.find(".obj") == path.npos)
+            throw std::invalid_argument("Not .obj file : " + path);
         loader.load(path);
         std::cout<<"Loaded .OBJ file : "<<path<<std::endl;
         

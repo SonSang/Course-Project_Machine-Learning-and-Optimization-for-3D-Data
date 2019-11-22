@@ -7,9 +7,9 @@ namespace AF {
     template<>
     void property_render_geometry<rmesh3>::build_BO() {
 		// 1. Create Vertex Array Object
-        GLuint vao;
-        glGenVertexArraysOES(1, &vao);
-        glBindVertexArrayOES(vao);
+        // GLuint vao;
+        // glGenVertexArraysOES(1, &vao);
+        // glBindVertexArrayOES(vao);
 
         // 2. Create a Vertex Buffer Object and copy the vertex data to it
         GLuint vbo[2];  // 0 for Position, 1 for normal.
@@ -79,10 +79,10 @@ namespace AF {
         delete[] faces;
         delete[] edges;
 
-        glBindVertexArrayOES(0);
+        //glBindVertexArrayOES(0);
 
         // 4. Set BO info.
-        BO.VAO = vao;
+        //BO.VAO = vao;
         BO.VBO.clear();
         BO.VBO.push_back(vbo[0]);
         BO.VBO.push_back(vbo[1]);
@@ -103,7 +103,17 @@ namespace AF {
         else 
             glUniform1i(get_shader_c().get_uniform_location("phong"), false);
         
-        glBindVertexArrayOES(BO.VAO);
+        //glBindVertexArrayOES(BO.VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, BO.VBO.at(0));
+        int attrib = get_shader_c().get_attribute_location("position");
+        glEnableVertexAttribArray(attrib);
+        glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, BO.VBO.at(1));
+        attrib = get_shader_c().get_attribute_location("normal");
+        glEnableVertexAttribArray(attrib);
+        glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
         if(C.M != C.WIREFRAME) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BO.EBO.at(0));
             glDrawElements(GL_TRIANGLES, BO.EBO_size.at(0), GL_UNSIGNED_INT, 0);
@@ -113,8 +123,9 @@ namespace AF {
             glDrawElements(GL_LINES, BO.EBO_size.at(1), GL_UNSIGNED_INT, 0);
         }
         
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glBindVertexArrayOES(0);
+        //glBindVertexArrayOES(0);
         shader::disable();
 	}
     template<>
@@ -125,9 +136,9 @@ namespace AF {
     template<>
     void property_render_geometry<triangle>::build_BO() {
 		// 1. Create Vertex Array Object
-        GLuint vao;
-        glGenVertexArraysOES(1, &vao);
-        glBindVertexArrayOES(vao);
+        // GLuint vao;
+        // glGenVertexArraysOES(1, &vao);
+        // glBindVertexArrayOES(vao);
 
         // 2. Create a Vertex Buffer Object and copy the vertex data to it
         GLuint vbo[2];  // 0 for Position, 1 for normal.
@@ -199,10 +210,10 @@ namespace AF {
         delete[] faces;
         delete[] edges;
 
-        glBindVertexArrayOES(0);
+        //glBindVertexArrayOES(0);
 
         // 4. Set BO info.
-        BO.VAO = vao;
+        //BO.VAO = vao;
         BO.VBO.clear();
         BO.VBO.push_back(vbo[0]);
         BO.VBO.push_back(vbo[1]);
@@ -223,7 +234,17 @@ namespace AF {
         else 
             glUniform1i(get_shader_c().get_uniform_location("phong"), false);
         
-        glBindVertexArrayOES(BO.VAO);
+        //glBindVertexArrayOES(BO.VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, BO.VBO.at(0));
+        int attrib = get_shader_c().get_attribute_location("position");
+        glEnableVertexAttribArray(attrib);
+        glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, BO.VBO.at(1));
+        attrib = get_shader_c().get_attribute_location("normal");
+        glEnableVertexAttribArray(attrib);
+        glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        
         if(C.M != C.WIREFRAME) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BO.EBO.at(0));
             glDrawElements(GL_TRIANGLES, BO.EBO_size.at(0), GL_UNSIGNED_INT, 0);
@@ -234,7 +255,7 @@ namespace AF {
         }
         
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glBindVertexArrayOES(0);
+        //glBindVertexArrayOES(0);
         shader::disable();
 	}
     template<>

@@ -37,8 +37,10 @@ int wnd_width = 640, wnd_height = 480;
 AF::camera          MC;     // Main Camera
 AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
+static bool SRmenu_on = false;  // Menu toggler
 
-std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model;
+std::vector<std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>> models;
+std::vector<bool> models_select;
 
 void init_camera() {
     MC.set_position(0, 0, 1);
@@ -98,71 +100,52 @@ void keyboard_event(const SDL_Event &e, bool &done) {
         else if(e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
             done = true;
         }
-        else if(e.key.keysym.scancode == SDL_SCANCODE_F2) {     // Change render mode
-            if(model->get_config_c().M == model->get_config_c().PHONG)
-                model->get_config().M = model->get_config_c().WIREFRAME;
-            else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
-                model->get_config().M = model->get_config_c().PHONG;
-        }
-        else if(e.key.keysym.scancode == SDL_SCANCODE_F3) {     // Compute normal
-            model->get_geometry().compute_normals();
-            model->build_BO();
-        }
-        else if(e.key.keysym.scancode == SDL_SCANCODE_F4) {     // Reverse normal
-            model->get_geometry().reverse_normals();
-            model->build_BO();
+        // else if(e.key.keysym.scancode == SDL_SCANCODE_F2) {     // Change render mode
+        //     for(auto it = models.begin(); it != models.end(); it++) {}
+        //     if(model->get_config_c().M == model->get_config_c().PHONG)
+        //         model->get_config().M = model->get_config_c().WIREFRAME;
+        //     else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
+        //         model->get_config().M = model->get_config_c().PHONG;
+        // }
+        // else if(e.key.keysym.scancode == SDL_SCANCODE_F3) {     // Compute normal
+        //     model->get_geometry().compute_normals();
+        //     model->build_BO();
+        // }
+        // else if(e.key.keysym.scancode == SDL_SCANCODE_F4) {     // Reverse normal
+        //     model->get_geometry().reverse_normals();
+        //     model->build_BO();
+        // }
+        else if(e.key.keysym.scancode == SDL_SCANCODE_F2) {     // Toggle menu
+            SRmenu_on = !SRmenu_on;
         }
     }
 }
 
-void import_model() {
-    std::shared_ptr<AF::object>
-		cobj = std::make_shared<AF::object>("Model");
-
-    SM.get_object_manager().add_object(cobj);
-    
+void import_model(const std::string &path) {
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    model = ptr;
+
+    try {
+        ptr->get_geometry().build_obj(path);
+    } catch(std::exception &e) {
+        std::cout<<e.what()<<std::endl;
+        return;
+    }
+    //ptr->get_geometry().compute_normals();
+    
+    std::shared_ptr<AF::object>
+		cobj = std::make_shared<AF::object>(path);
+
+    SM.get_object_manager().add_object(cobj);
+
+    models.push_back(ptr);
     // ALWAYS SHADER FIRST!
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
-
-    std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
-        ptr2 = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    // ALWAYS SHADER FIRST!
-    ptr2->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
-
-    // 1. Sphere
-    // AF::sphere S;
-    // S.set_center(AF::vec3d(0, 0, 0));
-    // S.set_radius(1);
-    // AF::rmesh3 M;
-    // M = S.build_mesh3();
-    // ptr->set_geometry(M);
-
-    // 2. Model
-    //ptr->get_geometry().build_obj("./Assets/val/02958343/model_000009.obj");
-    ptr->get_geometry().build_obj("./Assets/Greek_Vase/Greek_Vase_3.obj");
-    ptr->get_geometry().scale_norm();
-
-    // 3. Triangle
-    // AF::triangle T;
-    // T.set_vertices(AF::vec3d(0, 0, 0), AF::vec3d(1, 0, 0), AF::vec3d(0, 1, 0));
-    // AF::vec3d n = T.normal();
-    // ptr->set_geometry(T);
-
-    // 4. Box
-    AF::box B = ptr->get_geometry_c().build_bounding_box();
-    AF::rmesh3 M;
-    M = B.build_mesh3();
-    ptr2->set_geometry(M);
+    //ptr->get_geometry().scale_norm();
 
     ptr->build_BO();
-    ptr2->build_BO();
 
-    // Render option
-    ptr->get_config().M = ptr->get_config().PHONG;
-    ptr2->get_config().M = ptr->get_config().WIREFRAME;
+    ptr->get_config().M = ptr->get_config().WIREFRAME;
 
     AF::material material;
     material.set_emmision(AF::color(0, 0, 0));
@@ -171,7 +154,6 @@ void import_model() {
     material.set_specular(AF::color(1.0, 1.0, 1.0));
     material.set_shininess(100);    
     ptr->shader_set_material(material);
-    ptr2->shader_set_material(material);
     
     AF::light_point light;
     light.set_position(AF::vec3d(0, 0, 0));
@@ -179,10 +161,115 @@ void import_model() {
     light.set_diffuse(AF::color(1.0, 1.0, 1.0));
     light.set_specular(AF::color(0.7, 0.7, 0.7));
     ptr->shader_set_light_point(light);
-    ptr2->shader_set_light_point(light);
     
     SM.add_object_property(cobj->get_id(), ptr);
-    SM.add_object_property(cobj->get_id(), ptr2);
+}
+
+void compute_normal(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
+    model->get_geometry().compute_normals();
+    model->build_BO();
+}
+
+void reverse_normal(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
+    model->get_geometry().reverse_normals();
+    model->build_BO();
+}
+
+void change_render_mode(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
+    if(model->get_config_c().M == model->get_config_c().PHONG)
+        model->get_config().M = model->get_config_c().WIREFRAME;
+    else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
+        model->get_config().M = model->get_config_c().PHONG;
+}
+
+void unit_size(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
+    model->get_geometry().scale_norm();
+    model->build_BO();
+}
+
+void update_models_select() {
+    models_select.clear();
+    models_select.resize(models.size());
+    for(int i = 0; i < models_select.size(); i++)
+        models_select[i] = false;
+}
+
+// GUI for Shape Retrieval.
+void SRmenu_model();
+void SRmenu_merge();
+
+void SRmenu() {
+    ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
+    if(ImGui::CollapsingHeader("Model"))
+        SRmenu_model();
+    if(ImGui::CollapsingHeader("Merge"))
+        SRmenu_merge();
+    ImGui::End();
+}
+void SRmenu_model() {
+    if(ImGui::TreeNode("Imported models")) {
+        for(auto it = models.begin(); it != models.end(); it++) {
+            ImGui::PushID(std::distance(models.begin(), it));
+            ImGui::Text((*it)->get_owner()->get_name().c_str());
+            ImGui::SameLine();
+            if(ImGui::Button("Toggle"))
+                (*it)->set_valid(!(*it)->is_valid());
+            ImGui::SameLine();
+            if(ImGui::Button("Unit size")) 
+                unit_size(*it);
+            ImGui::SameLine();
+            if(ImGui::Button("Set normal")) 
+                compute_normal(*it);
+            ImGui::SameLine();
+            if(ImGui::Button("Change render")) 
+                change_render_mode((*it));                
+            ImGui::PopID();
+        }
+
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
+    if(ImGui::TreeNode("Import model")) {
+        static char path[64] = "./Assets/val/02691156/model_000081.obj";
+        ImGui::InputText("path", path, 64);
+        ImGui::SameLine();
+        if(ImGui::Button("Import")) {
+            import_model(path);
+            update_models_select();
+        }         
+
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
+}
+void SRmenu_search() {
+
+}
+void SRmenu_merge() {
+    if(ImGui::TreeNode("Select models")) {
+        for(auto it = models.begin(); it != models.end(); it++) {
+            bool b = models_select.at(std::distance(models.begin(), it));
+            ImGui::Checkbox((*it)->get_owner()->get_name().c_str(), &b);
+            models_select.at(std::distance(models.begin(), it)) = b;
+        }
+        if(ImGui::Button("Select All")) {
+            for(auto it = models_select.begin(); it != models_select.end(); it++)
+                (*it) = true;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Deselect All")) {
+            for(auto it = models_select.begin(); it != models_select.end(); it++)
+                (*it) = false;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Merge")) {
+            // THIS IS WHERE TREE BUILDING ALGORITHM GOES IN....
+        }
+        ImGui::TreePop();
+    }
+    if(ImGui::TreeNode("Result tree")) {
+        ImGui::TreePop();
+    }
 }
 
 int main(int argc, char** argv)
@@ -223,7 +310,6 @@ int main(int argc, char** argv)
     }
 
     init_camera();
-    import_model();
 
     glEnable(GL_DEPTH_TEST);
 
@@ -275,6 +361,8 @@ int main(int argc, char** argv)
 #else
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
+        if(SRmenu_on)
+            SRmenu();
 #endif
 
         // Rendering
