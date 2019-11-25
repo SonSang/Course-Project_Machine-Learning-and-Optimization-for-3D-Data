@@ -6,13 +6,14 @@
 #endif
 
 #include "SRsphere.hpp"
+#include "../ARender/property_render_geometry.hpp"
 #include <map>
 #include <vector>
 #include <set>
 
 namespace AF {
     // Bounding Volume Hierarchy based on sphere.
-	class SRsphere_tree {
+	class SRsphere_tree : public property_render {
 	public:
 		class node {
 		public:
@@ -20,7 +21,7 @@ namespace AF {
 			int parent;
 			bool leaf;
 
-			SRsphere S;
+			property_render_geometry<SRsphere> S;
 		};
 		using ivpair = std::pair<int, double>;	// id - value pair.
 		struct ivpair_comp {
@@ -31,6 +32,7 @@ namespace AF {
 		using ivset = std::set<ivpair, ivpair_comp>;
 
 		std::vector<node> tree;
+		int root;
 
 		std::vector<int> prev_nodes;	// Node IDs from previous level.
 		std::vector<int> cur_nodes;		// Node IDs from current level.
@@ -63,6 +65,14 @@ namespace AF {
 
 		// Compute allowable offset from a sphere's center for given surplus volume.
 		double compute_valid_offset(int id, double surplus_volume) const;
+
+		// Rendering functions.
+		std::vector<int> render_nodes;		// Nodes that are currently rendered.
+		void build_render(); 				// Set rendering info of each nodes.
+		void render_nodes_parent();			// Set [ render_nodes ] to parents of current ones.
+		void render_nodes_child();			// Set [ render_nodes ] to child of current ones.
+		virtual void render() const noexcept;
+		virtual void render_ui();
 	};
 }
 

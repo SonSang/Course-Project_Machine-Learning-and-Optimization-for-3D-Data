@@ -1,4 +1,5 @@
 #include "SRsphere.hpp"
+#include "../ARender/property_render_geometry.hpp"
 #include <math.h>
 
 namespace AF {
@@ -35,4 +36,19 @@ namespace AF {
         double cdist = (a.get_center() - b.get_center()).len();
 		return (cdist <= a.get_radius() + b.get_radius());
     }
+
+	// property_render_geometry
+	template<>
+	void property_render_geometry<SRsphere>::build_BO() {
+		mesh3 M = get_geometry().build_mesh3();
+		build_BO_mesh3(M);
+	}
+	template<>
+    void property_render_geometry<SRsphere>::render() const noexcept {
+		render_mesh3();
+	}
+	template<>
+    void property_render_geometry<SRsphere>::render_ui() {
+		return;
+	}
 }

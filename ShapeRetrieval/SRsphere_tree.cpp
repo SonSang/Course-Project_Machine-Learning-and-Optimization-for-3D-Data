@@ -14,8 +14,8 @@ namespace AF {
 			const vec3d &pt = *it;
 			node N;
 			N.leaf = true;
-			N.S.set_center(*it);
-			N.S.set_radius(0);
+			N.S.get_geometry().set_center(*it);
+			N.S.get_geometry().set_radius(0);
 			tree.push_back(N);
 			prev_nodes.push_back(id);
 		}
@@ -31,7 +31,8 @@ namespace AF {
 
 				// @TODO : Fix later...
 				if (is_cur_node) {
-					tree.at(bid).S = SRsphere::merge(tree.at(id).S, tree.at(bid).S);
+					tree.at(bid).S.get_geometry() = 
+						SRsphere::merge(tree.at(id).S.get_geometry(), tree.at(bid).S.get_geometry());
 					tree.at(bid).child.push_back(id);
 					tree.at(id).parent = bid;
 				}
@@ -40,7 +41,8 @@ namespace AF {
 					cur_nodes.push_back(nid);
 					node N;
 					N.leaf = false;
-					N.S = SRsphere::merge(tree.at(id).S, tree.at(bid).S);
+					N.S.get_geometry() = 
+						SRsphere::merge(tree.at(id).S.get_geometry(), tree.at(bid).S.get_geometry());
 					N.child.push_back(id);
 					N.child.push_back(bid);
 
@@ -54,6 +56,7 @@ namespace AF {
 			prev_nodes = cur_nodes;
 			cur_nodes.clear();
 		} while (prev_nodes.size() > 1);
+		root = tree.size() - 1;
 	}
 
 	void SRsphere_tree::clear_minmax_list() {
@@ -88,7 +91,7 @@ namespace AF {
 
 	void SRsphere_tree::delete_minmax_list(int id) {
 		double vals[6];
-		get_minmax(tree.at(id).S, vals);
+		get_minmax(tree.at(id).S.get_geometry(), vals);
 
 		xmin_list.erase(ivpair(id, vals[0]));
 		xmax_list.erase(ivpair(id, vals[1]));
@@ -103,7 +106,7 @@ namespace AF {
 		ivpair best_fit(id, 1e+10);		// [ best fit node's id, surplus volume ].
 		double valid_offset = 0;
 
-		const sphere &tS = tree.at(id).S;
+		const sphere &tS = tree.at(id).S.get_geometry();
 		double cx = tS.get_center()[0];
 		double cy = tS.get_center()[1];
 		double cz = tS.get_center()[2];
@@ -120,7 +123,7 @@ namespace AF {
 				continue;
 
 			double vals[6];
-			get_minmax(tree.at(test_id).S, vals);
+			get_minmax(tree.at(test_id).S.get_geometry(), vals);
 
 			if (!first) {
 				if (vals[0] > vxmax || vals[1] < vxmin ||
@@ -155,7 +158,7 @@ namespace AF {
 				continue;
 
 			double vals[6];
-			get_minmax(tree.at(test_id).S, vals);
+			get_minmax(tree.at(test_id).S.get_geometry(), vals);
 
 			if (!first) {
 				if (vals[0] > vxmax || vals[1] < vxmin ||
@@ -229,7 +232,9 @@ namespace AF {
 	}*/
 
 	double SRsphere_tree::compute_surplus_volume(int a, int b) const {
-		const SRsphere &sA = tree.at(a).S, &sB = tree.at(b).S;
+		const SRsphere 
+			&sA = tree.at(a).S.get_geometry_c(), 
+			&sB = tree.at(b).S.get_geometry_c();
 		SRsphere merge = SRsphere::merge(sA, sB);
 		if (merge.get_radius() == sA.get_radius() || merge.get_radius() == sB.get_radius())	// One includes the other
 			return 0;
@@ -251,8 +256,49 @@ namespace AF {
 	}
 
 	double SRsphere_tree::compute_valid_offset(int id, double surplus_volume) const {
-		double cur_volume = tree.at(id).S.volume();
+		double cur_volume = tree.at(id).S.get_geometry_c().volume();
 		double total_volume = cur_volume + surplus_volume;
 		return pow((total_volume / pi) * 0.5, 1 / 3);
+	}
+
+	// Rendering.
+	void SRsphere_tree::build_render() {
+		for(auto it = tree.begin(); it != tree.end(); it++) {
+			auto &S = it->S.get_geometry();
+			it->S.set_shader(this->get_shader());
+			it->S.build_BO_mesh3(S.build_mesh3());
+			it->S.get_config().M = it->S.get_config().WIREFRAME;	
+		}
+		render_nodes.clear();
+		render_nodes.push_back(root);
+	}
+	void SRsphere_tree::render_nodes_parent() {
+		std::vector<int> pnodes;
+		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
+			int parent = tree.at(*it).parent;
+			if(parent > 0 && parent < tree.size())
+				pnodes.push_back(parent);
+		}			
+		if(!pnodes.empty())
+			render_nodes = pnodes;
+	}
+	void SRsphere_tree::render_nodes_child() {
+		std::vector<int> cnodes;
+		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
+			const auto &child = tree.at(*it).child;
+			if(child.empty())
+				cnodes.push_back(*it);
+			else
+				cnodes.insert(cnodes.end(), child.begin(), child.end());			
+		}
+		render_nodes = cnodes;
+	}
+	void SRsphere_tree::render() const noexcept {
+		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
+			tree.at(*it).S.render();
+		}
+	}
+	void SRsphere_tree::render_ui() {
+		return;
 	}
 }

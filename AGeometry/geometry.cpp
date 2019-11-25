@@ -32,6 +32,13 @@ namespace AF {
     std::vector<mesh3::face>& mesh3::get_faces() noexcept {
         return faces;
     }
+
+    std::set<vec3d> mesh3::get_vertex_set() const noexcept {
+        std::set<vec3d> ret;
+        for(auto it = vertices.begin(); it != vertices.end(); it++) 
+            ret.insert(*it);
+        return ret;
+    }
     
     box mesh3::build_bounding_box() const {
         box ret;
@@ -156,7 +163,7 @@ namespace AF {
     }
     mesh3 sphere::build_mesh3() const noexcept {
         int 
-            degree = 4;
+            degree = 3;
         vec3d
             xrad(radius, 0, 0),
             yrad(0, radius, 0),

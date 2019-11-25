@@ -8,6 +8,7 @@
 #include "../AMath/math.hpp"
 #include <array>
 #include <vector>
+#include <set>
 
 namespace AF {
     // Data structures to represent geometries.
@@ -38,6 +39,9 @@ namespace AF {
         std::vector<vec3d>& get_vertices() noexcept;
         std::vector<vec3d>& get_normals() noexcept;
         std::vector<face>& get_faces() noexcept;
+
+        // Get vertex set, which does not possess duplicate vertices.
+        std::set<vec3d> get_vertex_set() const noexcept;
 
         box build_bounding_box() const;   // Build bounding box that encompasses all the points in this mesh.
 

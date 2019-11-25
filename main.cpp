@@ -22,6 +22,7 @@
 #include "ARender/scene_manager.hpp"
 #include "ARender/mouse.hpp"
 #include "ARender/property_render_geometry.hpp"
+#include "ShapeRetrieval/SRsphere_tree.hpp"
 #include <iostream>
 
 // Imgui
@@ -39,7 +40,7 @@ AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
 static bool SRmenu_on = false;  // Menu toggler
 
-std::vector<std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>> models;
+std::vector<std::shared_ptr<AF::object>> models;
 std::vector<bool> models_select;
 
 void init_camera() {
@@ -80,6 +81,14 @@ void window_event(const SDL_Event &e, bool &done) {
         else if(e.window.event == SDL_WINDOWEVENT_RESIZED)
             resize(e.window.data1, e.window.data2);
     }
+}
+
+AF::property_render_geometry<AF::rmesh3>& get_model_mesh(int id) {
+    return *(*models.at(id)->get_property<AF::property_render_geometry<AF::rmesh3>>().begin());
+}
+
+AF::SRsphere_tree& get_model_sphere_tree(int id) {
+    return *(*models.at(id)->get_property<AF::SRsphere_tree>().begin());
 }
 
 void keyboard_event(const SDL_Event &e, bool &done) {
@@ -124,6 +133,8 @@ void keyboard_event(const SDL_Event &e, bool &done) {
 void import_model(const std::string &path) {
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+    std::shared_ptr<AF::SRsphere_tree>
+        tptr = std::make_shared<AF::SRsphere_tree>();
 
     try {
         ptr->get_geometry().build_obj(path);
@@ -138,9 +149,13 @@ void import_model(const std::string &path) {
 
     SM.get_object_manager().add_object(cobj);
 
-    models.push_back(ptr);
+    // models.push_back(ptr);
+    // models_stree.push_back(tptr);
+    tptr->set_valid(false);
+
     // ALWAYS SHADER FIRST!
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
+    tptr->set_shader(ptr->get_shader_c());
     //ptr->get_geometry().scale_norm();
 
     ptr->build_BO();
@@ -163,28 +178,35 @@ void import_model(const std::string &path) {
     ptr->shader_set_light_point(light);
     
     SM.add_object_property(cobj->get_id(), ptr);
+    SM.add_object_property(cobj->get_id(), tptr);
+    models.push_back(cobj);
 }
 
-void compute_normal(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
-    model->get_geometry().compute_normals();
-    model->build_BO();
+void compute_normal(int id) {
+    auto &mesh = get_model_mesh(id);
+    mesh.get_geometry().compute_normals();
+    mesh.build_BO();
 }
 
-void reverse_normal(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
-    model->get_geometry().reverse_normals();
-    model->build_BO();
+void change_render_mode(int id) {
+    auto &mesh = get_model_mesh(id);
+    if(mesh.get_config_c().M == mesh.get_config_c().PHONG)
+        mesh.get_config().M = mesh.get_config_c().WIREFRAME;
+    else if(mesh.get_config_c().M == mesh.get_config_c().WIREFRAME)
+        mesh.get_config().M = mesh.get_config_c().PHONG;
 }
 
-void change_render_mode(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
-    if(model->get_config_c().M == model->get_config_c().PHONG)
-        model->get_config().M = model->get_config_c().WIREFRAME;
-    else if(model->get_config_c().M == model->get_config_c().WIREFRAME)
-        model->get_config().M = model->get_config_c().PHONG;
+void unit_size(int id) {
+    auto &mesh = get_model_mesh(id);
+    mesh.get_geometry().scale_norm();
+    mesh.build_BO();
 }
 
-void unit_size(std::shared_ptr<AF::property_render_geometry<AF::rmesh3>> model) {
-    model->get_geometry().scale_norm();
-    model->build_BO();
+void build_sphere_tree(int id) {
+    std::set<AF::vec3d> pc;
+    pc = get_model_mesh(id).get_geometry().get_vertex_set();
+    get_model_sphere_tree(id).build(pc);
+    get_model_sphere_tree(id).build_render();
 }
 
 void update_models_select() {
@@ -208,22 +230,37 @@ void SRmenu() {
 }
 void SRmenu_model() {
     if(ImGui::TreeNode("Imported models")) {
+        int id = 0;
         for(auto it = models.begin(); it != models.end(); it++) {
             ImGui::PushID(std::distance(models.begin(), it));
-            ImGui::Text((*it)->get_owner()->get_name().c_str());
+            ImGui::Text((*it)->get_name().c_str());
+            if(ImGui::Button("Toggle")) {
+                bool v = get_model_mesh(id).is_valid();
+                get_model_mesh(id).set_valid(!v);
+            }
             ImGui::SameLine();
-            if(ImGui::Button("Toggle"))
-                (*it)->set_valid(!(*it)->is_valid());
-            ImGui::SameLine();
-            if(ImGui::Button("Unit size")) 
-                unit_size(*it);
+            if(ImGui::Button("Unit size"))
+                unit_size(id);                
             ImGui::SameLine();
             if(ImGui::Button("Set normal")) 
-                compute_normal(*it);
+                compute_normal(id);            
             ImGui::SameLine();
             if(ImGui::Button("Change render")) 
-                change_render_mode((*it));                
+                change_render_mode(id);     
+            ImGui::SameLine();
+            if(ImGui::Button("Build STree"))
+                build_sphere_tree(id);
+            ImGui::SameLine();
+            if(ImGui::Button("Toggle STree"))
+                get_model_sphere_tree(id).set_valid(!get_model_sphere_tree(id).is_valid());
+            ImGui::SameLine();
+            if(ImGui::Button("STree Lower"))
+                get_model_sphere_tree(id).render_nodes_child();
+            ImGui::SameLine();
+            if(ImGui::Button("STree upper"))            
+                get_model_sphere_tree(id).render_nodes_parent();
             ImGui::PopID();
+            id++;
         }
 
         ImGui::TreePop();
@@ -242,14 +279,11 @@ void SRmenu_model() {
         ImGui::Separator();
     }
 }
-void SRmenu_search() {
-
-}
 void SRmenu_merge() {
     if(ImGui::TreeNode("Select models")) {
         for(auto it = models.begin(); it != models.end(); it++) {
             bool b = models_select.at(std::distance(models.begin(), it));
-            ImGui::Checkbox((*it)->get_owner()->get_name().c_str(), &b);
+            ImGui::Checkbox((*it)->get_name().c_str(), &b);
             models_select.at(std::distance(models.begin(), it)) = b;
         }
         if(ImGui::Button("Select All")) {
