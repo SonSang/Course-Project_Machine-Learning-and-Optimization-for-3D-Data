@@ -40,7 +40,7 @@ namespace AF {
 	// property_render_geometry
 	template<>
 	void property_render_geometry<SRsphere>::build_BO() {
-		mesh3 M = get_geometry().build_mesh3();
+		mesh3 M = get_geometry().get_mesh3();
 		build_BO_mesh3(M);
 	}
 	template<>

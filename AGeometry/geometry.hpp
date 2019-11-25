@@ -86,7 +86,11 @@ namespace AF {
         void set_radius(double radius);
         double get_radius() const noexcept;
         
-        mesh3 build_mesh3() const noexcept;
+        static mesh3 build_mesh3(const vec3d &C, double R, int degree = 3) noexcept;
+        mesh3 build_mesh3(int degree = 3) const noexcept;
+
+        // Fast version of [ build_mesh3 ], just use pre-built mesh with degree 3.
+        mesh3 get_mesh3() const noexcept;
     };
 
     // Box (AABB).

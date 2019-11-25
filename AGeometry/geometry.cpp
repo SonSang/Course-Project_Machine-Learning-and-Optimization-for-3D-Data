@@ -161,9 +161,16 @@ namespace AF {
         build_sphere_mesh_triangle(t2, result, degree);
         build_sphere_mesh_triangle(t3, result, degree);
     }
-    mesh3 sphere::build_mesh3() const noexcept {
-        int 
-            degree = 3;
+
+    static mesh3 GS3 = sphere::build_mesh3(vec3d(0, 0, 0), 1, 3);
+
+    mesh3 sphere::build_mesh3(const vec3d &C, double R, int degree) noexcept {
+        sphere S;
+        S.set_center(C);
+        S.set_radius(R);
+        return S.build_mesh3(3);
+    }
+    mesh3 sphere::build_mesh3(int degree) const noexcept {
         vec3d
             xrad(radius, 0, 0),
             yrad(0, radius, 0),
@@ -222,6 +229,12 @@ namespace AF {
             ret.get_faces().push_back(nf);
         }
 
+        return ret;
+    }
+    mesh3 sphere::get_mesh3() const noexcept {
+        mesh3 ret = GS3;
+        for(auto it = ret.get_vertices().begin(); it != ret.get_vertices().end(); it++) 
+            (*it) = (*it) * get_radius() + get_center();
         return ret;
     }
 

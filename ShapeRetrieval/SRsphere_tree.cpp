@@ -266,7 +266,7 @@ namespace AF {
 		for(auto it = tree.begin(); it != tree.end(); it++) {
 			auto &S = it->S.get_geometry();
 			it->S.set_shader(this->get_shader());
-			it->S.build_BO_mesh3(S.build_mesh3());
+			it->S.build_BO_mesh3(S.get_mesh3());
 			it->S.get_config().M = it->S.get_config().WIREFRAME;	
 		}
 		render_nodes.clear();
