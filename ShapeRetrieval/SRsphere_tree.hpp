@@ -71,6 +71,7 @@ namespace AF {
 		void build_render(); 				// Set rendering info of each nodes.
 		void render_nodes_parent();			// Set [ render_nodes ] to parents of current ones.
 		void render_nodes_child();			// Set [ render_nodes ] to child of current ones.
+		void set_render_mode(int mode);		// Set render mode for spheres : 0 for wireframe, 1 for phong.
 		virtual void render() const noexcept;
 		virtual void render_ui();
 	};

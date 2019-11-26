@@ -209,6 +209,16 @@ void build_sphere_tree(int id) {
     get_model_sphere_tree(id).build_render();
 }
 
+void change_sphere_tree_render_mode(int id) {
+    auto mode = get_model_sphere_tree(id).tree.at(0).S.get_config().M;
+    int nmode;
+    if(mode == get_model_sphere_tree(id).tree.at(0).S.get_config().WIREFRAME)
+        nmode = 1;
+    else
+        nmode = 0;
+    get_model_sphere_tree(id).set_render_mode(nmode);
+}
+
 void update_models_select() {
     models_select.clear();
     models_select.resize(models.size());
@@ -259,6 +269,9 @@ void SRmenu_model() {
             ImGui::SameLine();
             if(ImGui::Button("STree upper"))            
                 get_model_sphere_tree(id).render_nodes_parent();
+            ImGui::SameLine();
+            if(ImGui::Button("Change STree render"))            
+                change_sphere_tree_render_mode(id);
             ImGui::PopID();
             id++;
         }

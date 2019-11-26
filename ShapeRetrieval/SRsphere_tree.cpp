@@ -293,6 +293,15 @@ namespace AF {
 		}
 		render_nodes = cnodes;
 	}
+	void SRsphere_tree::set_render_mode(int mode) {
+		for(auto it = tree.begin(); it != tree.end(); it++) {
+			auto &S = it->S.get_geometry();
+			if(mode == 0)
+				it->S.get_config().M = it->S.get_config().WIREFRAME;	
+			else 
+				it->S.get_config().M = it->S.get_config().PHONG;			
+		}
+	}
 	void SRsphere_tree::render() const noexcept {
 		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
 			tree.at(*it).S.render();
