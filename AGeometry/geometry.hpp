@@ -93,6 +93,7 @@ namespace AF {
 
         // Fast version of [ build_mesh3 ], just use pre-built mesh with degree 3.
         mesh3 get_mesh3() const noexcept;
+        mesh3 get_mesh2() const noexcept;
     };
 
     // Box (AABB).

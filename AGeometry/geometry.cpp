@@ -212,6 +212,7 @@ namespace AF {
     }
 
     static mesh3 GS3 = sphere::build_mesh3(vec3d(0, 0, 0), 1, 3);
+    static mesh3 GS2 = sphere::build_mesh3(vec3d(0, 0, 0), 1, 2);
 
     mesh3 sphere::build_mesh3(const vec3d &C, double R, int degree) noexcept {
         sphere S;
@@ -286,6 +287,13 @@ namespace AF {
             (*it) = (*it) * get_radius() + get_center();
         return ret;
     }
+    mesh3 sphere::get_mesh2() const noexcept {
+        mesh3 ret = GS2;
+        for(auto it = ret.get_vertices().begin(); it != ret.get_vertices().end(); it++) 
+            (*it) = (*it) * get_radius() + get_center();
+        return ret;
+    }
+
 
     // box
     void box::set_min_x(double xmin) {

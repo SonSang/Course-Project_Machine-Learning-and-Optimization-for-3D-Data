@@ -3,7 +3,9 @@ CC = g++ -std=c++17
 DEBUG = -g
 OPTIM = -O3
 TARGET = ./Output/GCC/main.exe
+TARGET_REL = ./Output/GCC/mainr.exe
 
+# ========================================================= GCC DEBUG
 # GCC_MATH
 DIR_MATH = ./AMath
 ODIR_MATH = $(DIR_MATH)/obj
@@ -77,13 +79,88 @@ LIB_PCL = -lpcl_features -lpcl_common -lpcl_kdtree -lpcl_octree -llz4
 # GCC_CGAL
 LIB_CGAL = -lCGAL -lgmp -lmpfr
 
+# ========================================================= GCC RELEASE
+
+# GCC_MATH_REL
+DIR_MATH_REL = ./AMath/release
+ODIR_MATH_REL = $(DIR_MATH_REL)/obj
+LDIR_MATH_REL = $(DIR_MATH_REL)/lib
+OBJ_MATH_REL = $(ODIR_MATH_REL)/math.o \
+			$(ODIR_MATH_REL)/random.o \
+			$(ODIR_MATH_REL)/timer.o 
+LIB_MATH_REL = $(LDIR_MATH_REL)/libmath.a
+LD_MATH_REL = -L$(LDIR_MATH_REL)/ -lmath
+
+# GCC_GEOMETRY_REL
+DIR_GEOM_REL = ./AGeometry/release
+ODIR_GEOM_REL = $(DIR_GEOM_REL)/obj
+LDIR_GEOM_REL = $(DIR_GEOM_REL)/lib
+OBJ_GEOM_REL = $(ODIR_GEOM_REL)/geometry.o
+LIB_GEOM_REL = $(LDIR_GEOM_REL)/libgeom.a
+LD_GEOM_REL = -L$(LDIR_GEOM_REL)/ -lgeom
+
+# GCC_RENDER_REL
+DIR_REND_REL = ./ARender/release
+ODIR_REND_REL = $(DIR_REND_REL)/obj
+LDIR_REND_REL = $(DIR_REND_REL)/lib
+OBJ_REND_REL = $(ODIR_REND_REL)/camera.o 						\
+			$(ODIR_REND_REL)/color.o 						\
+			$(ODIR_REND_REL)/io.o 							\
+			$(ODIR_REND_REL)/material.o 					\
+			$(ODIR_REND_REL)/object_manager.o 				\
+			$(ODIR_REND_REL)/object.o 						\
+			$(ODIR_REND_REL)/property_render_geometry.o 	\
+			$(ODIR_REND_REL)/property_render.o 				\
+			$(ODIR_REND_REL)/property.o 					\
+			$(ODIR_REND_REL)/render_geometry.o 				\
+			$(ODIR_REND_REL)/render_manager.o 				\
+			$(ODIR_REND_REL)/scene_manager.o 				\
+			$(ODIR_REND_REL)/shader.o 						\
+			$(ODIR_REND_REL)/texture.o 						\
+			$(ODIR_REND_REL)/mouse.o 						\
+			$(ODIR_REND_REL)/light.o						\
+			$(ODIR_REND_REL)/obj_loader.o
+LIB_REND_REL = $(LDIR_REND_REL)/librend.a
+LD_REND_REL = -L$(LDIR_REND_REL)/ -lrend
+
+# GCC_SR_REL
+DIR_SR_REL = ./ShapeRetrieval/release
+ODIR_SR_REL = $(DIR_SR_REL)/obj
+LDIR_SR_REL = $(DIR_SR_REL)/lib
+OBJ_SR_REL = 	$(ODIR_SR_REL)/SRsphere.o		\
+			$(ODIR_SR_REL)/SRsphere_tree.o	\
+			$(ODIR_SR_REL)/SRpcl_interface.o	\
+			$(ODIR_SR_REL)/SRcgal_interface.o
+LIB_SR_REL = $(LDIR_SR_REL)/libsr.a
+LD_SR_REL = -L$(LDIR_SR_REL)/ -lsr
+
+# GCC_IMGUI_REL
+DIR_IMGUI_REL = ./Dependencies/imgui/release
+ODIR_IMGUI_REL = $(DIR_IMGUI_REL)/obj
+LDIR_IMGUI_REL = $(DIR_IMGUI_REL)/lib
+OBJ_IMGUI_REL = $(ODIR_IMGUI_REL)/imgui.o	\
+			$(ODIR_IMGUI_REL)/imgui_demo.o 	\
+			$(ODIR_IMGUI_REL)/imgui_draw.o 	\
+			$(ODIR_IMGUI_REL)/imgui_widgets.o	\
+			$(ODIR_IMGUI_REL)/imgui_impl_sdl.o 	\
+			$(ODIR_IMGUI_REL)/imgui_impl_opengl3.o
+LIB_IMGUI_REL = $(LDIR_IMGUI_REL)/libimgui.a
+LD_IMGUI_REL = -L$(LDIR_IMGUI_REL)/ -limgui
+
+# ================================================================================
+
 # TOTAL
 LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)  
 LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
 
+LIB_REL = $(LIB_MATH_REL) $(LIB_GEOM_REL) $(LIB_REND_REL) $(LIB_SR_REL) $(LIB_IMGUI_REL)  
+LD_REL = $(LIB_SR_REL) $(LIB_REND_REL) $(LIB_GEOM_REL) $(LIB_MATH_REL) $(LIB_IMGUI_REL) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
+
 gcc : $(LIB)
 	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(DEBUG) -o $(TARGET)
-	#$(CC) main.cpp $(INCLUDE_PCL) $(LD) -lpcl_octree $(OPTIM) -o $(TARGET) 
+
+gcc_rel : $(LIB_REL)
+	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(OPTIM) -o $(TARGET_REL) 
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -96,6 +173,15 @@ $(LIB_MATH) : $(OBJ_MATH)
 $(ODIR_MATH)/%.o : $(DIR_MATH)/%.cpp
 	$(CC) $(DEBUG) -c -o $@ $<
 
+gcc_math_rel : $(OBJ_MATH_REL)
+	ar rc $(LIB_MATH_REL) $^	
+
+$(LIB_MATH_REL) : $(OBJ_MATH_REL)
+	ar rc $(LIB_MATH_REL) $^
+
+$(ODIR_MATH_REL)/%.o : $(DIR_MATH)/%.cpp
+	$(CC) $(OPTIM) -c -o $@ $<
+
 # GEOMETRY
 gcc_geom : $(OBJ_GEOM)
 	ar rc $(LIB_GEOM) $^
@@ -105,6 +191,15 @@ $(LIB_GEOM) : $(OBJ_GEOM)
 
 $(ODIR_GEOM)/%.o : $(DIR_GEOM)/%.cpp
 	$(CC) $(DEBUG) -c -o $@ $<
+
+gcc_geom_rel : $(OBJ_GEOM_REL)
+	ar rc $(LIB_GEOM_REL) $^
+
+$(LIB_GEOM_REL) : $(OBJ_GEOM_REL)
+	ar rc $(LIB_GEOM_REL) $^
+
+$(ODIR_GEOM_REL)/%.o : $(DIR_GEOM)/%.cpp
+	$(CC) $(OPTIM) -c -o $@ $<
 
 # RENDERER
 gcc_rend : $(OBJ_REND)
@@ -116,6 +211,15 @@ $(LIB_REND) : $(OBJ_REND)
 $(ODIR_REND)/%.o : $(DIR_REND)/%.cpp
 	$(CC) $(DEBUG) -c -o $@ $<
 
+gcc_rend_rel : $(OBJ_REND_REL)
+	ar rc $(LIB_REND_REL) $^
+
+$(LIB_REND_REL) : $(OBJ_REND_REL)
+	ar rc $(LIB_REND_REL) $^
+
+$(ODIR_REND_REL)/%.o : $(DIR_REND)/%.cpp
+	$(CC) $(OPTIM) -c -o $@ $<
+
 # SHAPE_RETRIEVAL
 gcc_sr : $(OBJ_SR)
 	ar rc $(LIB_SR) $^
@@ -125,7 +229,15 @@ $(LIB_SR) : $(OBJ_SR)
 
 $(ODIR_SR)/%.o : $(DIR_SR)/%.cpp
 	$(CC) $(DEBUG) $(INCLUDE_PCL) -c -o $@ $<
-	#$(CC) $(OPTIM) -I/usr/include/pcl-1.8 -I/usr/include/eigen3 -c -o $@ $<
+
+gcc_sr_rel : $(OBJ_SR_REL)
+	ar rc $(LIB_SR_REL) $^
+
+$(LIB_SR_REL) : $(OBJ_SR_REL)
+	ar rc $(LIB_SR_REL) $^
+
+$(ODIR_SR_REL)/%.o : $(DIR_SR)/%.cpp
+	$(CC) $(OPTIM) $(INCLUDE_PCL) -c -o $@ $<
 
 # IMGUI
 gcc_imgui : $(OBJ_IMGUI)
@@ -139,6 +251,18 @@ $(ODIR_IMGUI)/%.o : ./Dependencies/imgui/%.cpp
 
 $(ODIR_IMGUI)/%.o : ./Dependencies/imgui/examples/%.cpp 
 	$(CC) $(DEBUG) -I./Dependencies/imgui -c -o $@ $<
+
+gcc_imgui_rel : $(OBJ_IMGUI_REL)
+	ar rc $(LIB_IMGUI_REL) $^
+
+$(LIB_IMGUI_REL) : $(OBJ_IMGUI_REL)
+	ar rc $(LIB_IMGUI_REL) $^
+
+$(ODIR_IMGUI_REL)/%.o : ./Dependencies/imgui/%.cpp 
+	$(CC) $(OPTIM) -c -o $@ $<
+
+$(ODIR_IMGUI_REL)/%.o : ./Dependencies/imgui/examples/%.cpp 
+	$(CC) $(OPTIM) -I./Dependencies/imgui -c -o $@ $<
 
 # ================================================= EMCC
 

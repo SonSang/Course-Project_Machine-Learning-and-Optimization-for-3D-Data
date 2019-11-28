@@ -271,12 +271,12 @@ void SRmenu_model() {
             if(ImGui::Button("Change render")) 
                 change_render_mode(id);     
             ImGui::SameLine();
-            if(ImGui::Button("Build STree(BRUTE)"))
+            if(ImGui::Button("Build STree"))
                 build_sphere_tree(id);
             ImGui::SameLine();
-            if(ImGui::Button("Build STree(MEDIAL)"))
-                build_medial_axis(id);
-            ImGui::SameLine();
+            // if(ImGui::Button("Build STree(MEDIAL)"))
+            //     build_medial_axis(id);
+            // ImGui::SameLine();
             if(ImGui::Button("Toggle STree"))
                 get_model_sphere_tree(id).set_valid(!get_model_sphere_tree(id).is_valid());
             ImGui::SameLine();

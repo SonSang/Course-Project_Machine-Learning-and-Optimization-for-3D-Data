@@ -61,12 +61,13 @@ namespace AF {
 		public:
 			std::vector<int> child;
 			int parent;
-			bool leaf;
+			int level;	// height for leaf, 1 for root.
 
 			property_render_geometry<SRsphere> S;
 		};
 		std::vector<node> tree;
 		int root;
+		int height;
 		
 		// Build this tree from input [ point_cloud ].
 		// @multiplier : Amount of nodes that increase when level goes deeper.
@@ -75,6 +76,9 @@ namespace AF {
 
 		// Build this tree from input [ sphere_cloud ].
 		void build(const std::vector<SRsphere> &sphere_cloud, int multiplier = 4);
+
+		// Build this tree from input [ mesh3 ].
+		void build(const mesh3 &M, int multiplier = 4);
 
 		void clear_minmax_list();
 		void get_minmax(const SRsphere &S, double vals[6]);	// xmin, xmax, ymin, ymax, zmin, zmax.
