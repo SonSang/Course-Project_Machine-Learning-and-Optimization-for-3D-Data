@@ -6,15 +6,57 @@
 #endif
 
 #include "SRsphere.hpp"
+//#include "SRpcl_interface.hpp"
 #include "../ARender/property_render_geometry.hpp"
+#include "../Dependencies/nanoflann/include/nanoflann.hpp"
 #include <map>
 #include <vector>
 #include <set>
 
 namespace AF {
+	class SRpoint_cloud {
+	public:
+		std::vector<vec3d> pc;
+
+		inline size_t kdtree_get_point_count() const { return pc.size(); }
+
+		inline double kdtree_get_pt(const size_t idx, const size_t dim) const {
+			return pc[idx][dim];
+		}
+
+		template <class BBOX>
+		bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
+	};
+	
     // Bounding Volume Hierarchy based on sphere.
 	class SRsphere_tree : public property_render {
 	public:
+		// ============ These data structures are used to build sphere tree fast. 
+		using ivpair = std::pair<int, double>;	// id - value pair.
+		struct ivpair_comp {
+			bool operator() (const ivpair &lhs, const ivpair& rhs) const {
+				if(lhs.second == rhs.second)
+					return lhs.first < rhs.first;
+				else return lhs.second < rhs.second;
+			}
+		};
+		using ivset = std::set<ivpair, ivpair_comp>;
+		// pclPC::Ptr pcptr;
+		// pclOT::Ptr octree;					// Octree that holds centers of spheres.
+		using nano_kdtree = nanoflann::KDTreeSingleIndexDynamicAdaptor<
+										nanoflann::L2_Simple_Adaptor<double, SRpoint_cloud>,
+										SRpoint_cloud, 3>;
+		std::map<vec3d, int> sphere_map;	// Mapping between sphere centers and node id.
+											// Because of this, we do not allow duplicate sphere centers.
+		ivset cur_nodes;					// Current level's nodes. These nodes are ordered by sphere volume.
+		ivset xmin_list;
+		ivset xmax_list;
+		ivset ymin_list;
+		ivset ymax_list; 
+		ivset zmin_list;
+		ivset zmax_list;
+
+		// =========== These data structures are real data representing this sphere tree.
 		class node {
 		public:
 			std::vector<int> child;
@@ -23,38 +65,27 @@ namespace AF {
 
 			property_render_geometry<SRsphere> S;
 		};
-		using ivpair = std::pair<int, double>;	// id - value pair.
-		struct ivpair_comp {
-			bool operator() (const ivpair &lhs, const ivpair& rhs) const {
-				return lhs.second < rhs.second;
-			}
-		};
-		using ivset = std::set<ivpair, ivpair_comp>;
-
 		std::vector<node> tree;
 		int root;
-
-		std::vector<int> prev_nodes;	// Node IDs from previous level.
-		std::vector<int> cur_nodes;		// Node IDs from current level.
-		ivset xmin_list;
-		ivset xmax_list;
-		ivset ymin_list;
-		ivset ymax_list; 
-		ivset zmin_list;
-		ivset zmax_list;
-
+		
 		// Build this tree from input [ point_cloud ].
-		void build(const std::set<vec3d> &point_cloud);
+		// @multiplier : Amount of nodes that increase when level goes deeper.
+		// 				If it is 4, it means that nodes increase in this order : 1 - 4 - 16 - 64 ...
+		void build(const std::set<vec3d> &point_cloud, int multiplier = 4);
+
+		// Build this tree from input [ sphere_cloud ].
+		void build(const std::vector<SRsphere> &sphere_cloud, int multiplier = 4);
 
 		void clear_minmax_list();
 		void get_minmax(const SRsphere &S, double vals[6]);	// xmin, xmax, ymin, ymax, zmin, zmax.
 		void insert_minmax_list(int id, const SRsphere &S);
 		void delete_minmax_list(int id);
 
-		// Find best fit node to merge ( that incurs least amount of volume increase ) 
-		// for the given node in the tree.
-		// @include_cur_nodes : Also find best fit node from [ cur_nodes ].
-		int find_best_fit(int id, bool include_cur_nodes);
+		// Find mutually best fitting nodes to merge in [ cur_nodes ].
+		std::pair<int, int> find_best_fit(const nano_kdtree &kdtree);
+
+		// Find best fit node to merge ( that incurs least amount of volume increase ) for the given node in the tree.
+		int find_best_fit(const nano_kdtree &kdtree, int id, double &SV);
 
 		// Find closest node for the given node ( only consider distance between centers ).
 		// @TODO : we could better than this with KD tree algorithm...

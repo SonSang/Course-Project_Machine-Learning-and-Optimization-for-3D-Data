@@ -222,6 +222,8 @@ namespace AF {
         }
         size_t
             len = tokenlist.size();
+        std::set<int> testface;     // To prevent duplicate faces.
+        size_t tlen = len;
         for (int i = 0; i < len; i++) {
             std::string
                 str = tokenlist.at(i);
@@ -250,6 +252,7 @@ namespace AF {
                 vert.set_normal(vec3d(0, 0, 0));
                 vert.set_texture(vec2d(0, 0));
                 f.add_vertex(vert);
+                testface.insert(vertexindex - 1);
                 continue;
             }
             else if (idx == 1) // vertex and texture info
@@ -274,6 +277,7 @@ namespace AF {
                 vert.set_normal(vec3d(0, 0, 0));
                 str[delim[0]] = '/';
                 f.add_vertex(vert);
+                testface.insert(vertexindex - 1);
                 continue;
             }
             else // all 3 info
@@ -313,11 +317,16 @@ namespace AF {
                 vert.set_normal((normalindex - 1 < nlist.size()) ? nlist.at(normalindex - 1) : vec3d(0, 0, 0));
                 vert.set_texture((textureindex < 0) ? vec2d(0, 0) : (textureindex - 1 < tlist.size() ? tlist.at(textureindex - 1) : vec2d(0, 0)));
                 f.add_vertex(vert);
+                testface.insert(vertexindex - 1);
                 str[delim[0]] = '/';
                 str[delim[1]] = '/';
                 continue;
             }
         }
+        // Check for duplicate face.
+        if(uface.find(testface) != uface.end())
+            return;
+
         if (is_empty()) { // no prev object.
             object
                 no;
@@ -335,9 +344,11 @@ namespace AF {
         group
             &g = o.get_group(o.size() - 1);
         g.add_face(f);
+        uface.insert(testface);
     }
 
     void obj_loader::load(const std::string &filename) {
+        uface.clear();
         std::vector<std::string>
             linelist = IO::read_text_multi(filename);
         std::vector<vec3d>

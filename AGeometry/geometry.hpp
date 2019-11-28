@@ -51,6 +51,8 @@ namespace AF {
         virtual void compute_normals();             // Compute and set normals according to current vertex-face relationship.
         void reverse_normals();             // Reverse current normals.
 
+        void del_duplicate_faces();         // Delete duplicate faces.
+
         //void build_obj(const std::string &path);    // Build by [ .obj ] file.
         virtual void clear() noexcept;
     };

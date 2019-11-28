@@ -23,6 +23,7 @@
 #include "ARender/mouse.hpp"
 #include "ARender/property_render_geometry.hpp"
 #include "ShapeRetrieval/SRsphere_tree.hpp"
+#include "ShapeRetrieval/SRcgal_interface.hpp"
 #include <iostream>
 
 // Imgui
@@ -138,6 +139,7 @@ void import_model(const std::string &path) {
 
     try {
         ptr->get_geometry().build_obj(path);
+        //ptr->get_geometry().del_duplicate_faces();
     } catch(std::exception &e) {
         std::cout<<e.what()<<std::endl;
         return;
@@ -209,6 +211,17 @@ void build_sphere_tree(int id) {
     get_model_sphere_tree(id).build_render();
 }
 
+bool ma_flip = true;
+void build_medial_axis(int id) {
+    std::set<AF::vec3d> pc;
+    std::vector<AF::SRsphere> sc;
+    // pc = get_model_mesh(id).get_geometry().get_vertex_set();
+    // sc = AF::get_pcl_medial_axis_balls(pc, ma_flip);
+    sc = AF::get_cgal_mesh_skeleton(get_model_mesh(id).get_geometry());
+    get_model_sphere_tree(id).build(sc);
+    get_model_sphere_tree(id).build_render();
+}
+
 void change_sphere_tree_render_mode(int id) {
     auto mode = get_model_sphere_tree(id).tree.at(0).S.get_config().M;
     int nmode;
@@ -258,8 +271,11 @@ void SRmenu_model() {
             if(ImGui::Button("Change render")) 
                 change_render_mode(id);     
             ImGui::SameLine();
-            if(ImGui::Button("Build STree"))
+            if(ImGui::Button("Build STree(BRUTE)"))
                 build_sphere_tree(id);
+            ImGui::SameLine();
+            if(ImGui::Button("Build STree(MEDIAL)"))
+                build_medial_axis(id);
             ImGui::SameLine();
             if(ImGui::Button("Toggle STree"))
                 get_model_sphere_tree(id).set_valid(!get_model_sphere_tree(id).is_valid());
@@ -272,6 +288,12 @@ void SRmenu_model() {
             ImGui::SameLine();
             if(ImGui::Button("Change STree render"))            
                 change_sphere_tree_render_mode(id);
+            ImGui::SameLine();
+            if(ImGui::Button("Flip ma normal"))            
+            {
+                ma_flip = !ma_flip;
+                build_medial_axis(id);
+            }
             ImGui::PopID();
             id++;
         }

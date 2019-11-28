@@ -81,6 +81,55 @@ namespace AF {
         }
     }
 
+    void mesh3::del_duplicate_faces() {
+        auto vset = get_vertex_set();
+        std::set<face> unique_faces;
+        for(auto it = faces.begin(); it != faces.end(); it++) {
+            int
+                a = std::distance(vset.begin(), vset.find(get_vertices()[(*it)[0]])),
+                b = std::distance(vset.begin(), vset.find(get_vertices()[(*it)[0]])),
+                c = std::distance(vset.begin(), vset.find(get_vertices()[(*it)[0]]));
+            face f;
+            f[0] = a;
+            f[1] = b;
+            f[2] = c;
+            if(unique_faces.find(f) != unique_faces.end()) // duplicate
+                continue;
+            else
+                unique_faces.insert(f);
+        }
+        vertices.clear();
+        normals.clear();
+        faces.clear();
+        for(auto it = unique_faces.begin(); it != unique_faces.end(); it++) {
+            auto beg = vset.begin();
+            std::advance(beg, (*it)[0]);
+            vec3d a = *beg;
+
+            beg = vset.begin();
+            std::advance(beg, (*it)[1]);
+            vec3d b = *beg;
+
+            beg = vset.begin();
+            std::advance(beg, (*it)[2]);
+            vec3d c = *beg;
+
+            face nf;
+            vertices.push_back(a);
+            normals.push_back(vec3d(0, 0, 1));
+            nf[0] = vertices.size() - 1;
+
+            vertices.push_back(b);
+            normals.push_back(vec3d(0, 0, 1));
+            nf[1] = vertices.size() - 1;
+
+            vertices.push_back(c);
+            normals.push_back(vec3d(0, 0, 1));
+            nf[2] = vertices.size() - 1;
+            faces.push_back(nf);
+        }
+    }
+
     void mesh3::clear() noexcept {
         this->vertices.clear();
         this->normals.clear();
@@ -168,7 +217,7 @@ namespace AF {
         sphere S;
         S.set_center(C);
         S.set_radius(R);
-        return S.build_mesh3(3);
+        return S.build_mesh3(degree);
     }
     mesh3 sphere::build_mesh3(int degree) const noexcept {
         vec3d

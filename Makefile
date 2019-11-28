@@ -1,6 +1,7 @@
 # ================================================= GCC
 CC = g++ -std=c++17
 DEBUG = -g
+OPTIM = -O3
 TARGET = ./Output/GCC/main.exe
 
 # GCC_MATH
@@ -50,7 +51,9 @@ DIR_SR = ./ShapeRetrieval
 ODIR_SR = $(DIR_SR)/obj
 LDIR_SR = $(DIR_SR)/lib
 OBJ_SR = 	$(ODIR_SR)/SRsphere.o		\
-			$(ODIR_SR)/SRsphere_tree.o
+			$(ODIR_SR)/SRsphere_tree.o	\
+			$(ODIR_SR)/SRpcl_interface.o	\
+			$(ODIR_SR)/SRcgal_interface.o
 LIB_SR = $(LDIR_SR)/libsr.a
 LD_SR = -L$(LDIR_SR)/ -lsr
 
@@ -67,12 +70,20 @@ OBJ_IMGUI = $(ODIR_IMGUI)/imgui.o	\
 LIB_IMGUI = $(LDIR_IMGUI)/libimgui.a
 LD_IMGUI = -L$(LDIR_IMGUI)/ -limgui
 
+# GCC_PCL
+INCLUDE_PCL = -I/usr/include/pcl-1.8 -I/usr/include/eigen3
+LIB_PCL = -lpcl_features -lpcl_common -lpcl_kdtree -lpcl_octree -llz4
+
+# GCC_CGAL
+LIB_CGAL = -lCGAL -lgmp -lmpfr
+
 # TOTAL
-LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)
-LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) -lGL -lSDL2 -lgomp 
+LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)  
+LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
 
 gcc : $(LIB)
-	$(CC) main.cpp $(LD) $(DEBUG) -o $(TARGET) 
+	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(DEBUG) -o $(TARGET)
+	#$(CC) main.cpp $(INCLUDE_PCL) $(LD) -lpcl_octree $(OPTIM) -o $(TARGET) 
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -113,7 +124,8 @@ $(LIB_SR) : $(OBJ_SR)
 	ar rc $(LIB_SR) $^
 
 $(ODIR_SR)/%.o : $(DIR_SR)/%.cpp
-	$(CC) $(DEBUG) -c -o $@ $<
+	$(CC) $(DEBUG) $(INCLUDE_PCL) -c -o $@ $<
+	#$(CC) $(OPTIM) -I/usr/include/pcl-1.8 -I/usr/include/eigen3 -c -o $@ $<
 
 # IMGUI
 gcc_imgui : $(OBJ_IMGUI)

@@ -10,6 +10,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <set>
 
 namespace AF {
     class obj_loader {
@@ -89,6 +90,8 @@ namespace AF {
             const std::vector<vec3d> &vlist,
             const std::vector<vec3d> &nlist,
             const std::vector<vec2d> &tlist);
+
+        std::set<std::set<int>> uface; // Used to prevent duplicate faces.
     public:
         obj_loader() = default;
         obj_loader(const std::string &filename);
