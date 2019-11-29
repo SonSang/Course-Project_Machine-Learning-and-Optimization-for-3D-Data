@@ -104,11 +104,22 @@ namespace AF {
 		// Rendering functions.
 		std::vector<int> render_nodes;		// Nodes that are currently rendered.
 		void build_render(); 				// Set rendering info of each nodes.
+		std::set<int> get_level_set(int) const;	// Get nodes at certain level.
 		void render_nodes_parent();			// Set [ render_nodes ] to parents of current ones.
 		void render_nodes_child();			// Set [ render_nodes ] to child of current ones.
 		void set_render_mode(int mode);		// Set render mode for spheres : 0 for wireframe, 1 for phong.
 		virtual void render() const noexcept;
 		virtual void render_ui();
+
+		// ======================================== HAUSDORFF DIST ========================================= //
+		// Compute pseudo MAX value of Hausdorff distance of another sphere tree against this tree ( both at same level ).
+		// We do not implement another sphere set class, because we have to use tree structure for collision detection.
+		double compute_pseudo_hausdorff(const SRsphere_tree &other, int level) const;
+
+		// Compute pseudo Earth Moving Distance(EMD) between two trees.
+		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level);
+		// Test : return residual spheres...
+		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB);
 	};
 }
 

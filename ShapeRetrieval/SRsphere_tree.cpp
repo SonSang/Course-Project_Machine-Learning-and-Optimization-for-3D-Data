@@ -658,6 +658,19 @@ namespace AF {
 		render_nodes.clear();
 		render_nodes.push_back(root);
 	}
+	std::set<int> SRsphere_tree::get_level_set(int level) const {
+		std::set<int> ret;
+		std::vector<int> queue;
+		queue.push_back(root);
+		while(!queue.empty()) {
+			int n = queue.back(); queue.pop_back();
+			if(tree[n].level == level)
+				ret.insert(n);
+			else if(tree[n].level < level) 
+				queue.insert(queue.end(), tree[n].child.begin(), tree[n].child.end());
+		}
+		return ret;
+	}
 	void SRsphere_tree::render_nodes_parent() {
 		int cur_level = tree.at(render_nodes.at(0)).level;
 		if(cur_level <= 1)
@@ -720,5 +733,202 @@ namespace AF {
 	}
 	void SRsphere_tree::render_ui() {
 		return;
+	}
+
+	// Hausdorff distance
+	double SRsphere_tree::compute_pseudo_hausdorff(const SRsphere_tree &other, int level) const {
+		if(level < 0 || level > height || level > other.height)  
+			throw(std::invalid_argument("Invalid tree level for collision detection."));
+
+		// 1. Extract subset of [ other ] (@ residue) that is not covered by this tree's spheres.
+		// This reduces HD search space that we have to go through...
+		std::set<int> residueID = other.get_level_set(level);
+
+		std::vector<SRsphere> residue;
+		std::map<int, std::vector<int>> collision;	// Colliding spheres ( other.id, this.id )
+		using idpair = std::pair<int, int>;
+		std::vector<idpair> queue;					// ( other.id, this.id )
+
+		// 1-1. First extract sphere pairs that collide.
+		queue.push_back(idpair(root, other.root));
+		while(!queue.empty()) {
+			idpair ip = queue.back(); queue.pop_back();
+			const auto &otherN = other.tree.at(ip.first);
+			const auto &thisN = tree.at(ip.second);
+			if(SRsphere::overlap(otherN.S.get_geometry_c(), thisN.S.get_geometry_c())) {
+				bool is_level_other = (otherN.level == level);
+				bool is_level_this = (thisN.level == level);
+				if(is_level_other && is_level_this) {
+					auto find = collision.find(ip.first);
+					if(find != collision.end()) {
+						find->second.push_back(ip.second);
+					}
+					else {
+						std::vector<int> tmp;
+						tmp.push_back(ip.second);
+						collision.insert({ip.first, tmp});
+					}
+				}
+				else if(is_level_other) {
+					for(auto it = thisN.child.begin(); it != thisN.child.end(); it++)
+						queue.push_back(idpair(ip.first, *it));
+				}
+				else if(is_level_this) {
+					for(auto it = otherN.child.begin(); it != otherN.child.end(); it++)
+						queue.push_back(idpair(*it, ip.second));
+				}
+				else {
+					for(auto it = otherN.child.begin(); it != otherN.child.end(); it++) 
+						for(auto it2 = thisN.child.begin(); it2 != thisN.child.end(); it2++)
+							queue.push_back(idpair(*it, *it2));
+				}
+			}
+		}
+
+		// 1-2. Extract residue.
+		for(auto it = collision.begin(); it != collision.end(); it++) {
+			residueID.erase(it->first);
+			SRsphere otherS = other.tree.at(it->first).S.get_geometry_c();
+			for(auto sub = it->second.begin(); sub != it->second.end(); sub++) {
+				otherS.subtract(tree.at(*sub).S.get_geometry_c());
+				if(otherS.get_radius() == 0.0)
+					break;
+			}
+			if(otherS.get_radius() > 0.0) 
+				residue.push_back(otherS);
+		}
+
+		// 1-3. Add non-collided spheres to residue.
+		for(auto it = residueID.begin(); it != residueID.end(); it++) {
+			residue.push_back(other.tree.at(*it).S.get_geometry_c());
+		}
+
+		// 2. Compute HD.
+		double lowerHD = 0, upperHD = 1e+10;	// lower bound and upper bound for HD.
+
+		
+	}
+
+	// EMD
+	double SRsphere_tree::compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level) {
+		if(level < 0 || level > a.height || level > b.height)  
+			throw(std::invalid_argument("Invalid tree level for collision detection."));
+
+		// 1. Extract subset of each tree's sphere set that is not covered by the other's spheres.
+		std::map<int, SRsphere> level_set_a;
+		std::map<int, SRsphere> level_set_b;	// node - sphere pairs.
+
+		std::set<int> level_a = a.get_level_set(level);
+		std::set<int> level_b = b.get_level_set(level);
+
+		for(auto it = level_a.begin(); it != level_a.end(); it++) 
+			level_set_a.insert({*it, a.tree.at(*it).S.get_geometry_c()});
+		for(auto it = level_b.begin(); it != level_b.end(); it++) 
+			level_set_b.insert({*it, b.tree.at(*it).S.get_geometry_c()});
+
+		using idpair = std::pair<int, int>;
+		std::vector<idpair> queue;					// ( other.id, this.id )
+
+		queue.push_back(idpair(a.root, b.root));
+		while(!queue.empty()) {
+			idpair ip = queue.back(); queue.pop_back();
+			int aid = ip.first, bid = ip.second;
+			const auto &nodeA = a.tree.at(aid);
+			const auto &nodeB = b.tree.at(bid);
+			if(SRsphere::overlap(nodeA.S.get_geometry_c(), nodeB.S.get_geometry_c())) {
+				bool is_level_a = (nodeA.level == level);
+				bool is_level_b = (nodeB.level == level);
+				if(is_level_a && is_level_b) {
+					level_set_a.at(aid).subtract(nodeB.S.get_geometry_c());
+					level_set_b.at(bid).subtract(nodeA.S.get_geometry_c());
+				}
+				else if(is_level_a) {
+					for(auto it = nodeB.child.begin(); it != nodeB.child.end(); it++)
+						queue.push_back(idpair(aid, *it));
+				}
+				else if(is_level_b) {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++)
+						queue.push_back(idpair(*it, bid));
+				}
+				else {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++) 
+						for(auto it2 = nodeB.child.begin(); it2 != nodeB.child.end(); it2++)
+							queue.push_back(idpair(*it, *it2));
+				}
+			}
+		}
+
+		// 2. Compute EMD : Just add up all sphere's volume!
+		double EMD = 0;
+		for(auto it = level_set_a.begin(); it != level_set_a.end(); it++) {
+			double r = it->second.get_radius();
+			EMD += r * r * r;
+		}
+		for(auto it = level_set_b.begin(); it != level_set_b.end(); it++) {
+			double r = it->second.get_radius();
+			EMD += r * r * r;
+		}
+		EMD *= (4.0 / 3.0) * pi;
+
+		return EMD;
+	}
+	void SRsphere_tree::test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB) {
+		if(level < 0 || level > a.height || level > b.height)  
+			throw(std::invalid_argument("Invalid tree level for collision detection."));
+
+		// 1. Extract subset of each tree's sphere set that is not covered by the other's spheres.
+		std::map<int, SRsphere> level_set_a;
+		std::map<int, SRsphere> level_set_b;	// node - sphere pairs.
+
+		std::set<int> level_a = a.get_level_set(level);
+		std::set<int> level_b = b.get_level_set(level);
+
+		for(auto it = level_a.begin(); it != level_a.end(); it++) 
+			level_set_a.insert({*it, a.tree.at(*it).S.get_geometry_c()});
+		for(auto it = level_b.begin(); it != level_b.end(); it++) 
+			level_set_b.insert({*it, b.tree.at(*it).S.get_geometry_c()});
+
+		using idpair = std::pair<int, int>;
+		std::vector<idpair> queue;					// ( other.id, this.id )
+
+		queue.push_back(idpair(a.root, b.root));
+		while(!queue.empty()) {
+			idpair ip = queue.back(); queue.pop_back();
+			int aid = ip.first, bid = ip.second;
+			const auto &nodeA = a.tree.at(aid);
+			const auto &nodeB = b.tree.at(bid);
+			if(SRsphere::overlap(nodeA.S.get_geometry_c(), nodeB.S.get_geometry_c())) {
+				bool is_level_a = (nodeA.level == level);
+				bool is_level_b = (nodeB.level == level);
+				if(is_level_a && is_level_b) {
+					level_set_a.at(aid).subtract(nodeB.S.get_geometry_c());
+					level_set_b.at(bid).subtract(nodeA.S.get_geometry_c());
+				}
+				else if(is_level_a) {
+					for(auto it = nodeB.child.begin(); it != nodeB.child.end(); it++)
+						queue.push_back(idpair(aid, *it));
+				}
+				else if(is_level_b) {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++)
+						queue.push_back(idpair(*it, bid));
+				}
+				else {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++) 
+						for(auto it2 = nodeB.child.begin(); it2 != nodeB.child.end(); it2++)
+							queue.push_back(idpair(*it, *it2));
+				}
+			}
+		}
+
+		subA.clear();
+		subB.clear();
+		for(auto it = level_set_a.begin(); it != level_set_a.end(); it++) {
+			if(it->second.get_radius() > 0)
+				subA.push_back(it->second);
+		}
+		for(auto it = level_set_b.begin(); it != level_set_b.end(); it++) {
+			if(it->second.get_radius() > 0)
+				subB.push_back(it->second);
+		}
 	}
 }

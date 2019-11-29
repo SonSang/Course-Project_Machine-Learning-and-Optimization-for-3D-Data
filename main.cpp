@@ -22,6 +22,7 @@
 #include "ARender/scene_manager.hpp"
 #include "ARender/mouse.hpp"
 #include "ARender/property_render_geometry.hpp"
+#include "ARender/render_geometry.hpp"
 #include "ShapeRetrieval/SRsphere_tree.hpp"
 #include "ShapeRetrieval/SRcgal_interface.hpp"
 #include <iostream>
@@ -239,9 +240,107 @@ void update_models_select() {
         models_select[i] = false;
 }
 
+void testEMD1(int level) {
+    if(level > 6 || level < 1) {
+        std::cout<<"Level must be lower than 7."<<std::endl;
+        return;
+    }
+    // EMD test 1 : Simple test, for given two sphere trees and level,
+    //              subtract one from each other and compute EMD.
+    int aid = -1, bid = -1;
+    for(int i = 0; i < models_select.size(); i++) {
+        if(models_select[i])
+        {
+            if(aid == -1) 
+                aid = i;
+            else if(bid == -1) {
+                bid = i;
+                break;
+            }
+        }
+    }
+    if(aid == -1 || bid == -1) {
+        std::cout<<"Please select two models for EMD."<<std::endl;
+        return;
+    }
+    std::vector<AF::SRsphere> subA, subB;
+    AF::SRsphere_tree::test_pseudo_emd(
+        get_model_sphere_tree(aid),
+        get_model_sphere_tree(bid),
+        level,
+        subA, subB
+    );
+    double r = 0;
+    for(auto it = subA.begin(); it != subA.end(); it++) {
+        double t = it->get_radius();
+        r += t * t * t;
+    }
+    for(auto it = subB.begin(); it != subB.end(); it++) {
+        double t = it->get_radius();
+        r += t * t * t;
+    }
+    r *= (4.0 / 3.0) * AF::pi;
+    std::cout<<"EMD : "<<r<<std::endl;
+
+    // Draw [ sub ].
+    std::shared_ptr<AF::object>
+		cobj = std::make_shared<AF::object>();
+
+    SM.get_object_manager().add_object(cobj);
+
+    AF::material material;
+    material.set_emmision(AF::color(0, 0, 0));
+    material.set_ambient(AF::color(0.2, 0.2, 0.2));
+    material.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    material.set_specular(AF::color(1.0, 1.0, 1.0));
+    material.set_shininess(100);    
+
+    AF::material materialB;
+    materialB.set_emmision(AF::color(0, 0, 0));
+    materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
+    materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
+    materialB.set_specular(AF::color(1.0, 1.0, 1.0));
+    materialB.set_shininess(100);    
+    
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+    
+    for(auto it = subA.begin(); it != subA.end(); it++) {
+        std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
+            ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+        ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+        AF::mesh3 m = it->get_mesh2();
+        ptr->get_config().M = ptr->get_config().PHONG;
+        ptr->build_BO_mesh3(m);
+        ptr->shader_set_light_point(light);
+        ptr->shader_set_material(material);
+        SM.add_object_property(cobj->get_id(), ptr);
+    }
+
+    for(auto it = subB.begin(); it != subB.end(); it++) {
+        std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
+            ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+        ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+        AF::mesh3 m = it->get_mesh2();
+        ptr->get_config().M = ptr->get_config().PHONG;
+        ptr->build_BO_mesh3(m);
+        ptr->shader_set_light_point(light);
+        ptr->shader_set_material(materialB);
+        SM.add_object_property(cobj->get_id(), ptr);
+    }
+}
+
+void testEMD2(int level) {
+    
+}
+
 // GUI for Shape Retrieval.
 void SRmenu_model();
 void SRmenu_merge();
+void SRmenu_EMD();
 
 void SRmenu() {
     ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
@@ -249,6 +348,8 @@ void SRmenu() {
         SRmenu_model();
     if(ImGui::CollapsingHeader("Merge"))
         SRmenu_merge();
+    if(ImGui::CollapsingHeader("EMD"))
+        SRmenu_EMD();
     ImGui::End();
 }
 void SRmenu_model() {
@@ -340,6 +441,21 @@ void SRmenu_merge() {
         ImGui::TreePop();
     }
 }
+void SRmenu_EMD() {
+    if(ImGui::TreeNode("Select two models")) {
+        for(auto it = models.begin(); it != models.end(); it++) {
+            bool b = models_select.at(std::distance(models.begin(), it));
+            ImGui::Checkbox((*it)->get_name().c_str(), &b);
+            models_select.at(std::distance(models.begin(), it)) = b;
+        }
+        static int level = 3;
+        ImGui::InputInt("level", &level);
+        if(ImGui::Button("Test 1 : Simple EMD")) {
+            testEMD1(level);
+        }
+        ImGui::TreePop();
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -400,6 +516,13 @@ int main(int argc, char** argv)
     // Setup Platform/Renderer bindings
     ImGui_ImplSDL2_InitForOpenGL(window, glc);
     ImGui_ImplOpenGL3_Init();
+
+    /////// ========================================== For utility.
+    import_model("./Assets/val/02691156/model_000081.obj");
+    import_model("./Assets/val/02691156/model_000555.obj");
+    //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
+    update_models_select();
+    ////// ===========================================
 
     // Main loop.
     bool done = false;

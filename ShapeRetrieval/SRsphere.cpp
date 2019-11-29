@@ -33,9 +33,49 @@ namespace AF {
 		}
     }
     bool SRsphere::overlap(const SRsphere &a, const SRsphere &b) {
-        double cdist = (a.get_center() - b.get_center()).len();
-		return (cdist <= a.get_radius() + b.get_radius());
+		return (offset(a, b) <= 0);
     }
+	double SRsphere::offset(const SRsphere &a, const SRsphere &b) {
+		return (a.get_center() - b.get_center()).len() - a.get_radius() - b.get_radius();
+	}
+	void SRsphere::subtract(const SRsphere &other) {
+		if(get_radius() == 0.0 || other.get_radius() == 0.0)
+			return;
+		double cdist = (this->get_center() - other.get_center()).len();
+		bool fast = true;
+		if(cdist + other.get_radius() <= this->get_radius()) {
+			// This sphere contains the other sphere.
+			if(cdist == 0.0) {
+				// Same center : Rarely happens, choose random direction : (1, 0, 0).
+				set_radius((get_radius() - other.get_radius()) * 0.5);
+				vec3d cadd(other.get_radius() + get_radius(), 0, 0);
+				set_center(get_center() + cadd);
+			}
+			else {
+				fast = false;
+			}
+		}
+		else if(cdist + this->get_radius() <= other.get_radius()) {
+			// Other sphere contains this sphere.
+			set_radius(0);
+		}
+		else if(cdist - this->get_radius() - other.get_radius() <= 0) {
+			// Partial overlap.
+			fast = false;
+		}
+		if(!fast) {
+			// Leave only biggest sub sphere.
+			double R = this->get_radius();
+			double r = other.get_radius();
+			double nR = (R - (r - cdist)) * 0.5;
+			set_radius(nR);
+
+			vec3d v = this->get_center() - other.get_center();
+			v.normalize();
+			v *= (r - cdist + nR);
+			set_center(this->get_center() + v);
+		}
+	}
 
 	// property_render_geometry
 	template<>

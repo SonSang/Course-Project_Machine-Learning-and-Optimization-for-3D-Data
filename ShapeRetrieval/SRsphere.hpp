@@ -19,8 +19,15 @@ namespace AF {
         // Create a bigger sphere that encompasses both spheres [ a ] and [ b ].
         static SRsphere merge(const SRsphere &a, const SRsphere &b);
 
-        // Do these spheres overlap ?
+        // Do these spheres overlap ? (offset == 0)
         static bool overlap(const SRsphere &a, const SRsphere &b);
+
+        // How far apart two spheres located ?
+        static double offset(const SRsphere &a, const SRsphere &b);
+
+        // Remove subset of this sphere that is also part of [ other ] sphere. 
+        // It does not conduct precise computation : just approximate.
+        void subtract(const SRsphere &other);
     };
 }
 
