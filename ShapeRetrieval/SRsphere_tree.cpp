@@ -187,13 +187,14 @@ namespace AF {
 	void SRsphere_tree::build(const std::vector<SRsphere> &sphere_cloud, int multiplier) {
 		tree.clear();
 		cur_nodes.clear();
-		sphere_map.clear();
-
+		
 		// K-D tree init.
-		std::set<vec3d> point_cloud;
-		for(auto it = sphere_cloud.begin(); it != sphere_cloud.end(); it++) 
-			point_cloud.insert(it->get_center());
-		kdpc = get_nf_point_cloud(point_cloud);	// Point cloud for KDtree.
+		kdpc.pc.resize(sphere_cloud.size());
+		int i = 0;
+		for(auto it = sphere_cloud.begin(); it != sphere_cloud.end(); it++) {
+			kdpc.pc[i] = it->get_center();
+			i++;
+		}
 		nano_kdtree kdtree(3, kdpc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
 
 		// Number of nodes for current level.
@@ -220,12 +221,8 @@ namespace AF {
 			N.S.set_geometry(*it);
 			tree.push_back(N);
 
-			cur_nodes.insert({id, it->volume()});
-			sphere_map.insert({it->get_center(), id});
+			cur_nodes.insert({id, N.S.get_geometry().volume()});
 		}
-
-		// std::vector<node> real_tree;
-		// std::map<int, int> tmp_real_tree_map;
 
 		do {
 			std::set<int> new_nodes;	// Newly added [ cur_nodes ] in this step.
@@ -295,27 +292,11 @@ namespace AF {
 				cur_nodes.erase({bid, tree.at(bid).S.get_geometry().volume()});
 				cur_nodes.insert({nid, N.S.get_geometry().volume()});
 
-				int removeAid = -1, removeBid = -1;
-				for(int i = 0; i < kdpc.pc.size(); i++) {
-					if(kdpc.pc[i] == tree.at(aid).S.get_geometry().get_center())
-						removeAid = i;
-					if(kdpc.pc[i] == tree.at(bid).S.get_geometry().get_center())
-						removeBid = i;
-					//if(removeAid != -1 && removeBid != -1) break;
-				} 
-				kdtree.removePoint(removeAid);
-				kdtree.removePoint(removeBid);
+				kdtree.removePoint(aid);
+				kdtree.removePoint(bid);
 
 				kdpc.pc.push_back(tree.at(nid).S.get_geometry().get_center());
 				kdtree.addPoints(kdpc.pc.size() - 1, kdpc.pc.size() - 1);
-
-				// delete_minmax_list(aid);
-				// delete_minmax_list(bid);
-				// insert_minmax_list(nid, tree.at(nid).S.get_geometry());
-
-				sphere_map.erase(tree.at(aid).S.get_geometry().get_center());
-				sphere_map.erase(tree.at(bid).S.get_geometry().get_center());
-				sphere_map.insert({tree.at(nid).S.get_geometry().get_center(), nid});
 
 				if(cur_nodes.size() % 100 == 0)
 					std::cout<<"Current node size : "<<cur_nodes.size()<<std::endl;
@@ -332,51 +313,122 @@ namespace AF {
 					tree.at(it->first).parent = nid;
 					
 					tree.push_back(N);
+					kdtree.removePoint(it->first);
+					kdpc.pc.push_back(N.S.get_geometry().get_center());
+					kdtree.addPoints(kdpc.pc.size() - 1, kdpc.pc.size() - 1);
+
 					copy.erase(*it);
 					copy.insert({nid, N.S.get_geometry().volume()});
-					sphere_map.at(N.S.get_geometry().get_center()) = nid;
 				}
 			}
 			cur_nodes = copy;
-			// std::cout<<"Current node size : "<<cur_nodes.size()<<std::endl;
-			// // insert into real tree.
-			// for(auto it = cur_nodes.begin(); it != cur_nodes.end(); it++) {
-			// 	int rid = (int)real_tree.size();
-			// 	node N = tree.at(it->first);
-			// 	if((height == 7 && N.level == 6) || N.level == height)
-			// 		N.child.clear();
-			// 	else {
-			// 		std::vector<int> child;
-			// 		for(auto it = N.child.begin(); it != N.child.end(); it++) {
-			// 			int real_child = tmp_real_tree_map.at(*it);
-			// 			child.push_back(real_child);
-			// 			real_tree.at(real_child).parent = rid;
-			// 		}
-			// 		N.child = child;
-			// 	}
-			// 	real_tree.push_back(N);
-			// 	tmp_real_tree_map.insert({it->first, rid});
-			// }
 
 			cur_node_size /= multiplier;
 		} while (cur_node_size > 0);
-		//tree = real_tree;
 		root = tree.size() - 1;
+	}
+
+	SRsphere triangle_sphere(const vec3d &a, const vec3d &b, const vec3d &c) {
+		SRsphere S;
+		S.set_center((a + b + c) / 3.0);
+		double ra = (S.get_center() - a).lensq();
+		double rb = (S.get_center() - b).lensq();
+		double rc = (S.get_center() - c).lensq();
+		if(ra >= rb) {
+			if(ra >= rc) S.set_radius(sqrt(ra));
+			else S.set_radius(sqrt(rc));
+		}
+		else {
+			if(rb >= rc) S.set_radius(sqrt(rb));
+			else S.set_radius(sqrt(rc));
+		}
+		return S;
+	}
+	// Subdivide given triangle until each segment could be covered with sphere of radius [ radius ].
+	void subdivide_triangle(const vec3d &a, const vec3d &b, const vec3d &c, std::vector<SRsphere> &sc, double radius) {
+		double
+			len0 = (a - b).lensq(),
+			len1 = (b - c).lensq(),
+			len2 = (c - a).lensq();
+		vec3d d;
+		SRsphere S1, S2;
+		if(len0 >= len1 && len0 >= len2) {
+			d = (a + b) * 0.5;
+			S1 = triangle_sphere(d, b, c);
+			S2 = triangle_sphere(d, a, c);
+			if(S1.get_radius() <= radius) sc.push_back(S1);
+			else subdivide_triangle(d, b, c, sc, radius);
+			if(S2.get_radius() <= radius) sc.push_back(S2);
+			else subdivide_triangle(d, a, c, sc, radius);
+		}
+		else if(len1 >= len0 && len1 >= len2) {
+			d = (b + c) * 0.5;
+			S1 = triangle_sphere(d, a, b);
+			S2 = triangle_sphere(d, a, c);
+			if(S1.get_radius() <= radius) sc.push_back(S1);
+			else subdivide_triangle(d, a, b, sc, radius);
+			if(S2.get_radius() <= radius) sc.push_back(S2);
+			else subdivide_triangle(d, a, c, sc, radius);
+		}			
+		else {
+			d = (c + a) * 0.5;
+			S1 = triangle_sphere(d, a, b);
+			S2 = triangle_sphere(d, c, b);
+			if(S1.get_radius() <= radius) sc.push_back(S1);
+			else subdivide_triangle(d, a, b, sc, radius);
+			if(S2.get_radius() <= radius) sc.push_back(S2);
+			else subdivide_triangle(d, c, b, sc, radius);
+		}	
+	}
+	// Regularize triangles in the mesh [ M ] and wrap them up with sphere cloud [ sc ].
+	void regularize_mesh3(const mesh3 &M, std::vector<SRsphere> &sc, double absrad = 0.1) {
+		double avgradius = 0;
+		std::vector<SRsphere> presc;
+		int fnum = M.get_faces_c().size();
+		presc.resize(fnum);
+		for(int i = 0; i < fnum; i++) {
+			const vec3d 
+				&a = M.get_vertices_c().at(M.get_faces_c()[i][0]),
+				&b = M.get_vertices_c().at(M.get_faces_c()[i][1]),
+				&c = M.get_vertices_c().at(M.get_faces_c()[i][2]);
+			SRsphere S = triangle_sphere(a, b, c);
+			avgradius += S.get_radius();
+			presc[i] = S;
+		}
+		avgradius /= (double)fnum;
+
+		double maxrad = (avgradius < absrad) ? avgradius : absrad;
+		sc.clear();
+		sc.reserve(fnum);
+		for(int i = 0; i < fnum; i++) {
+			if(presc[i].get_radius() <= maxrad)
+				sc.push_back(presc[i]);
+			else {
+				std::vector<SRsphere> ns;
+				const vec3d 
+					&a = M.get_vertices_c().at(M.get_faces_c()[i][0]),
+					&b = M.get_vertices_c().at(M.get_faces_c()[i][1]),
+					&c = M.get_vertices_c().at(M.get_faces_c()[i][2]);
+				subdivide_triangle(a, b, c, ns, maxrad);
+				sc.insert(sc.end(), ns.begin(), ns.end());
+			}
+		}
 	}
 
 	void SRsphere_tree::build(const mesh3 &M, int multiplier) {
 		std::vector<SRsphere> sc;
 		std::cout<<"Build tree, # of faces : "<<M.get_faces_c().size()<<std::endl;
-		for(auto it = M.get_faces_c().begin(); it != M.get_faces_c().end(); it++) {
-			const vec3d 
-				&a = M.get_vertices_c().at(it->at(0)),
-				&b = M.get_vertices_c().at(it->at(1)),
-				&c = M.get_vertices_c().at(it->at(2));
-			SRsphere S;
-			S.set_center((a + b + c) / 3.0);
-			S.set_radius((S.get_center() - a).len());
-			sc.push_back(S);
-		}
+		regularize_mesh3(M, sc);
+		// for(auto it = M.get_faces_c().begin(); it != M.get_faces_c().end(); it++) {
+		// 	const vec3d 
+		// 		&a = M.get_vertices_c().at(it->at(0)),
+		// 		&b = M.get_vertices_c().at(it->at(1)),
+		// 		&c = M.get_vertices_c().at(it->at(2));
+		// 	SRsphere S;
+		// 	S.set_center((a + b + c) / 3.0);
+		// 	S.set_radius((S.get_center() - a).len());
+		// 	sc.push_back(S);
+		// }
 		build(sc, multiplier);
 	}
 
@@ -1025,8 +1077,8 @@ namespace AF {
 		column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz };//, param.scale };
 		dlib::find_min_using_approximate_derivatives(
 			dlib::bfgs_search_strategy(), 
-			dlib::objective_delta_stop_strategy(),
-			align_emd_funct, vp, -1
+			dlib::objective_delta_stop_strategy(1e-5, 10),
+			align_emd_funct, vp, -1, 1e-3
 		);
 		param.rx = vp(0);
 		param.ry = vp(1);

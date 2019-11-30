@@ -208,7 +208,8 @@ void unit_size(int id) {
 void build_sphere_tree(int id) {
     std::set<AF::vec3d> pc;
     pc = get_model_mesh(id).get_geometry().get_vertex_set();
-    get_model_sphere_tree(id).build(pc);
+    //get_model_sphere_tree(id).build(pc);
+    get_model_sphere_tree(id).build(get_model_mesh(id).get_geometry());
     get_model_sphere_tree(id).build_render();
 }
 
