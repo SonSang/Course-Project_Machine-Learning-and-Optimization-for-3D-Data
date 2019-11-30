@@ -652,6 +652,8 @@ namespace AF {
 		for(auto it = tree.begin(); it != tree.end(); it++) {
 			if(it->level >= 7)
 				continue;
+			if(tree.at(it->child.at(0)).parent != std::distance(tree.begin(), it))
+				continue;
 			auto &S = it->S.get_geometry();
 			it->S.set_shader(this->get_shader());
 			it->S.build_BO_mesh3(S.get_mesh2());
@@ -960,9 +962,9 @@ namespace AF {
 		R.set(2, 0, -siny);
 		R.set(2, 1, cosy * sinx);
 		R.set(2, 2, cosy * cosx);
-		for(int i = 0; i < 3; i++) 
-			for(int j = 0; j < 3; j++)
-				R.set(i, j, R[i][j] * param(6));
+		// for(int i = 0; i < 3; i++) 
+		// 	for(int j = 0; j < 3; j++)
+		// 		R.set(i, j, R[i][j] * param(6));
 		T.set(param(3), param(4), param(5));
 		
 		TR.set_rotation(R);
@@ -975,7 +977,7 @@ namespace AF {
 			if(source.tree[n].level <= level) {
 				auto &S = source.tree[n].S.get_geometry();
 				S.set_center(TR.apply(S.get_center()));
-				S.set_radius(S.get_radius() * param(6));
+				//S.set_radius(S.get_radius() * param(6));
 
 				if(source.tree[n].level != level)
 					queue.insert(queue.end(), source.tree[n].child.begin(), source.tree[n].child.end());
@@ -1006,9 +1008,9 @@ namespace AF {
 		R.set(2, 0, -siny);
 		R.set(2, 1, cosy * sinx);
 		R.set(2, 2, cosy * cosx);
-		for(int i = 0; i < 3; i++) 
-			for(int j = 0; j < 3; j++)
-				R.set(i, j, R[i][j] * param.scale);
+		// for(int i = 0; i < 3; i++) 
+		// 	for(int j = 0; j < 3; j++)
+		// 		R.set(i, j, R[i][j] * param.scale);
 		T.set(param.tx, param.ty, param.tz);
 
 		transform TR;
@@ -1020,7 +1022,7 @@ namespace AF {
 		optim_base = base;
 		optim_source = source;
 		optim_level = level;
-		column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz, param.scale };
+		column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz };//, param.scale };
 		dlib::find_min_using_approximate_derivatives(
 			dlib::bfgs_search_strategy(), 
 			dlib::objective_delta_stop_strategy(),
@@ -1032,6 +1034,18 @@ namespace AF {
 		param.tx = vp(3);
 		param.ty = vp(4);
 		param.tz = vp(5);
-		param.scale = vp(6);
+		//param.scale = vp(6);
+		// auto result = dlib::find_min_global(
+		// 	align_emd_funct,
+		// 	{ 0, 0, 0, -1, -1, -1},
+		// 	{ pi20, pi20, pi20, 1, 1, 1},
+		// 	dlib::max_function_calls(300)
+		// );
+		// param.rx = result.x(0);
+		// param.ry = result.x(1);
+		// param.rz = result.x(2);
+		// param.tx = result.x(3);
+		// param.ty = result.x(4);
+		// param.tz = result.x(5);
 	}
 }

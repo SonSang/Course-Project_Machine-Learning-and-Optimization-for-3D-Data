@@ -240,7 +240,7 @@ void update_models_select() {
         models_select[i] = false;
 }
 
-static AF::SRsphere_tree::align_var av;
+static AF::SRsphere_tree::align_var av(0, 0, 0, 0, 0, 0);
 void testEMD1(int level) {
     if(level > 6 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
@@ -271,7 +271,7 @@ void testEMD1(int level) {
     for(auto it = copy.tree.begin(); it != copy.tree.end(); it++) {
         AF::SRsphere &S = it->S.get_geometry();
         S.set_center(copyTR.apply(S.get_center()));
-        S.set_radius(S.get_radius() * av.scale);
+        //S.set_radius(S.get_radius() * av.scale);
     }
     AF::SRsphere_tree::test_pseudo_emd(
         get_model_sphere_tree(aid),
@@ -395,12 +395,12 @@ void restoreEMD() {
     I.identity();
     models.at(bid)->set_transform(I);
     av.rx = 0;
-            av.ry = 0;
-            av.rz = 0;
-            av.tx = 0;
-            av.ty = 0;
-            av.tz = 0;
-            av.scale = 1;
+    av.ry = 0;
+    av.rz = 0;
+    av.tx = 0;
+    av.ty = 0;
+    av.tz = 0;
+            //av.scale = 1;
 }
 
 // GUI for Shape Retrieval.
@@ -592,6 +592,7 @@ int main(int argc, char** argv)
     /////// ========================================== For utility.
     import_model("./Assets/val/02691156/model_000081.obj");
     import_model("./Assets/val/02691156/model_000555.obj");
+
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
     ////// ===========================================

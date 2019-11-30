@@ -121,7 +121,10 @@ namespace AF {
 			double tx;
 			double ty;
 			double tz;	// Translation along x, y, z axis.
-			double scale;	// Scale factor.
+			//double scale;	// Scale factor.
+
+			align_var(double rx, double ry, double rz, double tx, double ty, double tz) :
+				rx(rx), ry(ry), rz(rz), tx(tx), ty(ty), tz(tz) {}
 		};
 		// Compute pseudo MAX value of Hausdorff distance of another sphere tree against this tree ( both at same level ).
 		// We do not implement another sphere set class, because we have to use tree structure for collision detection.
