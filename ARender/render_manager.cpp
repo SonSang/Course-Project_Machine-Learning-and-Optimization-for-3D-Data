@@ -25,7 +25,7 @@ namespace AF {
     unsigned int render_manager::node::get_id() const noexcept {
         return this->obj->get_id();
     }
-    void render_manager::node::render(const std::map<uint, node> &nodes, const camera &CAM, const transform TR) const noexcept {
+    void render_manager::node::render(const std::map<uint, node> &nodes, const camera &CAM, transform TR) const noexcept {
         int
             size = this->obj->property_size();
         

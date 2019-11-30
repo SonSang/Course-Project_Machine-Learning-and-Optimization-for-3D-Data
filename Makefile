@@ -79,6 +79,10 @@ LIB_PCL = -lpcl_features -lpcl_common -lpcl_kdtree -lpcl_octree -llz4
 # GCC_CGAL
 LIB_CGAL = -lCGAL -lgmp -lmpfr
 
+# GCC_DLIB
+INCLUDE_DLIB = -I./Dependencies/dlib-19.18
+LIB_DLIB = -lX11 -lpthread
+
 # ========================================================= GCC RELEASE
 
 # GCC_MATH_REL
@@ -151,13 +155,13 @@ LD_IMGUI_REL = -L$(LDIR_IMGUI_REL)/ -limgui
 
 # TOTAL
 LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)  
-LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
+LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) $(LIB_PCL) $(LIB_CGAL) $(LIB_DLIB) -lGL -lSDL2 
 
 LIB_REL = $(LIB_MATH_REL) $(LIB_GEOM_REL) $(LIB_REND_REL) $(LIB_SR_REL) $(LIB_IMGUI_REL)  
 LD_REL = $(LIB_SR_REL) $(LIB_REND_REL) $(LIB_GEOM_REL) $(LIB_MATH_REL) $(LIB_IMGUI_REL) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
 
 gcc : $(LIB)
-	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(DEBUG) -o $(TARGET)
+	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
 
 gcc_rel : $(LIB_REL)
 	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(OPTIM) -o $(TARGET_REL) 
@@ -228,7 +232,7 @@ $(LIB_SR) : $(OBJ_SR)
 	ar rc $(LIB_SR) $^
 
 $(ODIR_SR)/%.o : $(DIR_SR)/%.cpp
-	$(CC) $(DEBUG) $(INCLUDE_PCL) -c -o $@ $<
+	$(CC) $(DEBUG) $(INCLUDE_PCL) $(INCLUDE_DLIB) -c -o $@ $<
 
 gcc_sr_rel : $(OBJ_SR_REL)
 	ar rc $(LIB_SR_REL) $^

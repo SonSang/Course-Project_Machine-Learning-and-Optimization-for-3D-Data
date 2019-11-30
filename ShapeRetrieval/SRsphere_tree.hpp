@@ -112,6 +112,17 @@ namespace AF {
 		virtual void render_ui();
 
 		// ======================================== HAUSDORFF DIST ========================================= //
+		struct align_var {
+		public:
+			// Variables needed to define alignment.
+			double rx;
+			double ry;
+			double rz;	// Rotation around x, y, z axis.
+			double tx;
+			double ty;
+			double tz;	// Translation along x, y, z axis.
+			double scale;	// Scale factor.
+		};
 		// Compute pseudo MAX value of Hausdorff distance of another sphere tree against this tree ( both at same level ).
 		// We do not implement another sphere set class, because we have to use tree structure for collision detection.
 		double compute_pseudo_hausdorff(const SRsphere_tree &other, int level) const;
@@ -120,6 +131,11 @@ namespace AF {
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level);
 		// Test : return residual spheres...
 		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB);
+		
+		static transform alignTR(const align_var &param);
+		// Aligne [ source ] model to [ base model ] using [ param ] variables.
+		// We use non-linear optimization technique to find best alignment.
+		static void align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param);
 	};
 }
 

@@ -240,6 +240,7 @@ void update_models_select() {
         models_select[i] = false;
 }
 
+static AF::SRsphere_tree::align_var av;
 void testEMD1(int level) {
     if(level > 6 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
@@ -264,9 +265,17 @@ void testEMD1(int level) {
         return;
     }
     std::vector<AF::SRsphere> subA, subB;
+    AF::SRsphere_tree copy = get_model_sphere_tree(bid);
+    AF::transform copyTR = AF::SRsphere_tree::alignTR(av);
+    
+    for(auto it = copy.tree.begin(); it != copy.tree.end(); it++) {
+        AF::SRsphere &S = it->S.get_geometry();
+        S.set_center(copyTR.apply(S.get_center()));
+        S.set_radius(S.get_radius() * av.scale);
+    }
     AF::SRsphere_tree::test_pseudo_emd(
         get_model_sphere_tree(aid),
-        get_model_sphere_tree(bid),
+        copy,
         level,
         subA, subB
     );
@@ -283,58 +292,115 @@ void testEMD1(int level) {
     std::cout<<"EMD : "<<r<<std::endl;
 
     // Draw [ sub ].
-    std::shared_ptr<AF::object>
-		cobj = std::make_shared<AF::object>();
+    // std::shared_ptr<AF::object>
+	// 	cobj = std::make_shared<AF::object>();
 
-    SM.get_object_manager().add_object(cobj);
+    // SM.get_object_manager().add_object(cobj);
 
-    AF::material material;
-    material.set_emmision(AF::color(0, 0, 0));
-    material.set_ambient(AF::color(0.2, 0.2, 0.2));
-    material.set_diffuse(AF::color(0.9, 0.4, 0.4));
-    material.set_specular(AF::color(1.0, 1.0, 1.0));
-    material.set_shininess(100);    
+    // AF::material material;
+    // material.set_emmision(AF::color(0, 0, 0));
+    // material.set_ambient(AF::color(0.2, 0.2, 0.2));
+    // material.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    // material.set_specular(AF::color(1.0, 1.0, 1.0));
+    // material.set_shininess(100);    
 
-    AF::material materialB;
-    materialB.set_emmision(AF::color(0, 0, 0));
-    materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
-    materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
-    materialB.set_specular(AF::color(1.0, 1.0, 1.0));
-    materialB.set_shininess(100);    
+    // AF::material materialB;
+    // materialB.set_emmision(AF::color(0, 0, 0));
+    // materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
+    // materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
+    // materialB.set_specular(AF::color(1.0, 1.0, 1.0));
+    // materialB.set_shininess(100);    
     
-    AF::light_point light;
-    light.set_position(AF::vec3d(0, 0, 0));
-    light.set_ambient(AF::color(0.2, 0.2, 0.2));
-    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
-    light.set_specular(AF::color(0.7, 0.7, 0.7));
+    // AF::light_point light;
+    // light.set_position(AF::vec3d(0, 0, 0));
+    // light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    // light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    // light.set_specular(AF::color(0.7, 0.7, 0.7));
     
-    for(auto it = subA.begin(); it != subA.end(); it++) {
-        std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
-            ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-        ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
-        AF::mesh3 m = it->get_mesh2();
-        ptr->get_config().M = ptr->get_config().PHONG;
-        ptr->build_BO_mesh3(m);
-        ptr->shader_set_light_point(light);
-        ptr->shader_set_material(material);
-        SM.add_object_property(cobj->get_id(), ptr);
-    }
+    // for(auto it = subA.begin(); it != subA.end(); it++) {
+    //     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
+    //         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+    //     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    //     AF::mesh3 m = it->get_mesh2();
+    //     ptr->get_config().M = ptr->get_config().PHONG;
+    //     ptr->build_BO_mesh3(m);
+    //     ptr->shader_set_light_point(light);
+    //     ptr->shader_set_material(material);
+    //     SM.add_object_property(cobj->get_id(), ptr);
+    // }
 
-    for(auto it = subB.begin(); it != subB.end(); it++) {
-        std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
-            ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-        ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
-        AF::mesh3 m = it->get_mesh2();
-        ptr->get_config().M = ptr->get_config().PHONG;
-        ptr->build_BO_mesh3(m);
-        ptr->shader_set_light_point(light);
-        ptr->shader_set_material(materialB);
-        SM.add_object_property(cobj->get_id(), ptr);
-    }
+    // for(auto it = subB.begin(); it != subB.end(); it++) {
+    //     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
+    //         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+    //     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    //     AF::mesh3 m = it->get_mesh2();
+    //     ptr->get_config().M = ptr->get_config().PHONG;
+    //     ptr->build_BO_mesh3(m);
+    //     ptr->shader_set_light_point(light);
+    //     ptr->shader_set_material(materialB);
+    //     SM.add_object_property(cobj->get_id(), ptr);
+    // }
 }
 
 void testEMD2(int level) {
-    
+    if(level > 6 || level < 1) {
+        std::cout<<"Level must be lower than 7."<<std::endl;
+        return;
+    }
+    int aid = -1, bid = -1;
+    for(int i = 0; i < models_select.size(); i++) {
+        if(models_select[i])
+        {
+            if(aid == -1) 
+                aid = i;
+            else if(bid == -1) {
+                bid = i;
+                break;
+            }
+        }
+    }
+    if(aid == -1 || bid == -1) {
+        std::cout<<"Please select two models for EMD."<<std::endl;
+        return;
+    }
+    // EMD test 2 : Simple test, for given two sphere trees and level,
+    //              align the second tree to match to the first one as close as possible.
+    AF::SRsphere_tree::align_var var = av;
+    AF::SRsphere_tree::align_emd(
+        get_model_sphere_tree(aid),
+        get_model_sphere_tree(bid),
+        level, var);
+    models.at(bid)->set_transform(AF::SRsphere_tree::alignTR(var));
+    av = var;
+}
+
+void restoreEMD() {
+    int aid = -1, bid = -1;
+    for(int i = 0; i < models_select.size(); i++) {
+        if(models_select[i])
+        {
+            if(aid == -1) 
+                aid = i;
+            else if(bid == -1) {
+                bid = i;
+                break;
+            }
+        }
+    }
+    if(aid == -1 || bid == -1) {
+        std::cout<<"Please select two models for EMD."<<std::endl;
+        return;
+    }
+    AF::transform I;
+    I.identity();
+    models.at(bid)->set_transform(I);
+    av.rx = 0;
+            av.ry = 0;
+            av.rz = 0;
+            av.tx = 0;
+            av.ty = 0;
+            av.tz = 0;
+            av.scale = 1;
 }
 
 // GUI for Shape Retrieval.
@@ -452,6 +518,12 @@ void SRmenu_EMD() {
         ImGui::InputInt("level", &level);
         if(ImGui::Button("Test 1 : Simple EMD")) {
             testEMD1(level);
+        }
+        if(ImGui::Button("Test 2 : Align EMD")) {
+            testEMD2(level);
+        }
+        if(ImGui::Button("Restore")) {
+            restoreEMD();
         }
         ImGui::TreePop();
     }

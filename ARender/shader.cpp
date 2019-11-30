@@ -11,11 +11,11 @@ namespace AF {
         set_program(vert_filename, frag_filename);
     }
     shader::~shader() {
-        glDetachShader(get_program(), get_vertex_shader());
-		glDetachShader(get_program(), get_fragment_shader());
-		glDeleteShader(get_vertex_shader());
-		glDeleteShader(get_fragment_shader());
-		glDeleteProgram(get_program());
+        // glDetachShader(get_program(), get_vertex_shader());
+		// glDetachShader(get_program(), get_fragment_shader());
+		// glDeleteShader(get_vertex_shader());
+		// glDeleteShader(get_fragment_shader());
+		// glDeleteProgram(get_program());
     }
 
     // Create ( Compile )

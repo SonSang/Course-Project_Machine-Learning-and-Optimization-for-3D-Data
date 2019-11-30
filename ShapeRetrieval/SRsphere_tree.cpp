@@ -1,5 +1,7 @@
 #include "SRsphere_tree.hpp"
 #include "../Dependencies/nanoflann/examples/utils.hpp"
+#include "dlib/optimization.h"
+#include "dlib/global_optimization.h"
 #include <algorithm>
 #include <math.h>
 
@@ -930,5 +932,106 @@ namespace AF {
 			if(it->second.get_radius() > 0)
 				subB.push_back(it->second);
 		}
+	}
+
+	typedef dlib::matrix<double, 0, 1> column_vector;
+	SRsphere_tree optim_base;
+	SRsphere_tree optim_source;
+	SRsphere_tree optim_source_copy;
+	int optim_level;
+
+	void align(SRsphere_tree &source, int level, const column_vector &param) {
+		double 
+			cosx = cos(param(0)),
+			sinx = sin(param(0)),
+			cosy = cos(param(1)),
+			siny = sin(param(1)),
+			cosz = cos(param(2)),
+			sinz = sin(param(2));
+		transform TR;
+		rotation R;
+		translation T;
+		R.set(0, 0, cosz * cosy);
+		R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
+		R.set(0, 2, sinz * sinx + cosz * siny * cosx);
+		R.set(1, 0, sinz * cosy);
+		R.set(1, 1, cosz * cosx + sinz * siny * sinx);
+		R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
+		R.set(2, 0, -siny);
+		R.set(2, 1, cosy * sinx);
+		R.set(2, 2, cosy * cosx);
+		for(int i = 0; i < 3; i++) 
+			for(int j = 0; j < 3; j++)
+				R.set(i, j, R[i][j] * param(6));
+		T.set(param(3), param(4), param(5));
+		
+		TR.set_rotation(R);
+		TR.set_translation(T);
+
+		std::vector<int> queue;
+		queue.push_back(source.root);
+		while(!queue.empty()) {
+			int n = queue.back(); queue.pop_back();
+			if(source.tree[n].level <= level) {
+				auto &S = source.tree[n].S.get_geometry();
+				S.set_center(TR.apply(S.get_center()));
+				S.set_radius(S.get_radius() * param(6));
+
+				if(source.tree[n].level != level)
+					queue.insert(queue.end(), source.tree[n].child.begin(), source.tree[n].child.end());
+			}
+		}
+	}
+	double align_emd_funct(const column_vector &v) {
+		optim_source_copy = optim_source;
+		align(optim_source_copy, optim_level, v);
+		return SRsphere_tree::compute_pseudo_emd(optim_base, optim_source_copy, optim_level);
+	}
+	transform SRsphere_tree::alignTR(const align_var &param) {
+		double 
+			cosx = cos(param.rx),
+			sinx = sin(param.rx),
+			cosy = cos(param.ry),
+			siny = sin(param.ry),
+			cosz = cos(param.rz),
+			sinz = sin(param.rz);
+		rotation R;
+		translation T;
+		R.set(0, 0, cosz * cosy);
+		R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
+		R.set(0, 2, sinz * sinx + cosz * siny * cosx);
+		R.set(1, 0, sinz * cosy);
+		R.set(1, 1, cosz * cosx + sinz * siny * sinx);
+		R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
+		R.set(2, 0, -siny);
+		R.set(2, 1, cosy * sinx);
+		R.set(2, 2, cosy * cosx);
+		for(int i = 0; i < 3; i++) 
+			for(int j = 0; j < 3; j++)
+				R.set(i, j, R[i][j] * param.scale);
+		T.set(param.tx, param.ty, param.tz);
+
+		transform TR;
+		TR.set_rotation(R);
+		TR.set_translation(T);
+		return TR;
+	}
+	void SRsphere_tree::align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param) {
+		optim_base = base;
+		optim_source = source;
+		optim_level = level;
+		column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz, param.scale };
+		dlib::find_min_using_approximate_derivatives(
+			dlib::bfgs_search_strategy(), 
+			dlib::objective_delta_stop_strategy(),
+			align_emd_funct, vp, -1
+		);
+		param.rx = vp(0);
+		param.ry = vp(1);
+		param.rz = vp(2);
+		param.tx = vp(3);
+		param.ty = vp(4);
+		param.tz = vp(5);
+		param.scale = vp(6);
 	}
 }
