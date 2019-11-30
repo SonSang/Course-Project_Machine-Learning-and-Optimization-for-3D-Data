@@ -136,9 +136,11 @@ namespace AF {
 		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB);
 		
 		static transform alignTR(const align_var &param);
-		// Aligne [ source ] model to [ base model ] using [ param ] variables.
+		// Align [ source ] model to [ base model ] using [ param ] variables.
 		// We use non-linear optimization technique to find best alignment.
 		static void align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param);
+		// We use simple ICP technique to find best alignment.
+		static void align_icp(const SRsphere_tree &base, const SRsphere_tree &source, int level, transform &TR);
 	};
 }
 

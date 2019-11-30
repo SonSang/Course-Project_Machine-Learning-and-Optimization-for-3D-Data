@@ -1,7 +1,17 @@
 #include "SRsphere_tree.hpp"
+
+// For building sphere tree.
 #include "../Dependencies/nanoflann/examples/utils.hpp"
+
+// For nonlinear optimization.
 #include "dlib/optimization.h"
 #include "dlib/global_optimization.h"
+
+// For ICP method.
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
+
 #include <algorithm>
 #include <math.h>
 
@@ -1099,5 +1109,69 @@ namespace AF {
 		// param.tx = result.x(3);
 		// param.ty = result.x(4);
 		// param.tz = result.x(5);
+	}
+	void SRsphere_tree::align_icp(const SRsphere_tree &base, const SRsphere_tree &source, int level, transform &TR) {
+		pcl::PointCloud<pcl::PointXYZ>::Ptr basePCL(new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZ>::Ptr sourcePCL(new pcl::PointCloud<pcl::PointXYZ>);
+
+		if(level == 1) {
+			TR.identity();
+			translation T;
+			vec3d tmpT = base.tree[base.root].S.get_geometry_c().get_center() - source.tree[source.root].S.get_geometry_c().get_center();
+			T.set(tmpT[0], tmpT[1], tmpT[2]);
+			TR.set_translation(T);
+			return;
+		}
+
+		std::set<int> level_set_base = base.get_level_set(level);
+		std::set<int> level_set_source = source.get_level_set(level);
+
+		// Set [ basePCL ].
+		basePCL->width = level_set_base.size();
+		basePCL->height = 1;
+		basePCL->is_dense = true;
+		basePCL->points.resize(basePCL->width * basePCL->height);
+		int id = 0;
+		for(auto it = level_set_base.begin(); it != level_set_base.end(); it++) {
+			const vec3d &C = base.tree[*it].S.get_geometry_c().get_center();
+			basePCL->points[id].x = (float)C[0];
+			basePCL->points[id].y = (float)C[1];
+			basePCL->points[id].z = (float)C[2];
+			id++;
+		}
+
+		// Set [ sourcePCL ].
+		sourcePCL->width = level_set_source.size();
+		sourcePCL->height = 1;
+		sourcePCL->is_dense = true;
+		sourcePCL->points.resize(sourcePCL->width * sourcePCL->height);
+		id = 0;
+		for(auto it = level_set_source.begin(); it != level_set_source.end(); it++) {
+			vec3d C = source.tree[*it].S.get_geometry_c().get_center();
+			C = TR.apply(C);	// Use previous transform info.
+			sourcePCL->points[id].x = (float)C[0];
+			sourcePCL->points[id].y = (float)C[1];
+			sourcePCL->points[id].z = (float)C[2];
+			id++;
+		}
+
+		// Do ICP.
+		pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+		icp.setMaxCorrespondenceDistance(1.0);
+		icp.setInputSource(sourcePCL);
+		icp.setInputTarget(basePCL);
+		pcl::PointCloud<pcl::PointXYZ> fin;
+		icp.align(fin);
+		auto tmpTR = icp.getFinalTransformation();
+		
+		rotation R;
+		translation T;
+		for(int i = 0; i < 3; i++) {
+			T[i] = tmpTR(i, 3);
+			for(int j = 0; j < 3; j++) 
+				R[i][j] = tmpTR(i, j);
+		}
+		TR.set_rotation(R);
+		TR.set_translation(T);
 	}
 }

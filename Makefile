@@ -74,7 +74,7 @@ LD_IMGUI = -L$(LDIR_IMGUI)/ -limgui
 
 # GCC_PCL
 INCLUDE_PCL = -I/usr/include/pcl-1.8 -I/usr/include/eigen3
-LIB_PCL = -lpcl_features -lpcl_common -lpcl_kdtree -lpcl_octree -llz4
+LIB_PCL = -lpcl_features -lpcl_common -lpcl_io -lpcl_registration -lpcl_search -lpcl_kdtree -lboost_system -llz4
 
 # GCC_CGAL
 LIB_CGAL = -lCGAL -lgmp -lmpfr

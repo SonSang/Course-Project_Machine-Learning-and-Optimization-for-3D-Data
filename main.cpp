@@ -242,6 +242,7 @@ void update_models_select() {
 }
 
 static AF::SRsphere_tree::align_var av(0, 0, 0, 0, 0, 0);
+static AF::transform atr;
 void testEMD1(int level) {
     if(level > 6 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
@@ -375,6 +376,37 @@ void testEMD2(int level) {
     av = var;
 }
 
+void testEMD3(int level) {
+     if(level > 6 || level < 1) {
+        std::cout<<"Level must be lower than 7."<<std::endl;
+        return;
+    }
+    int aid = -1, bid = -1;
+    for(int i = 0; i < models_select.size(); i++) {
+        if(models_select[i])
+        {
+            if(aid == -1) 
+                aid = i;
+            else if(bid == -1) {
+                bid = i;
+                break;
+            }
+        }
+    }
+    if(aid == -1 || bid == -1) {
+        std::cout<<"Please select two models for EMD."<<std::endl;
+        return;
+    }
+    // EMD test 3 : Simple test, for given two sphere trees and level,
+    //              align the second tree to match to the first one as close as possible.
+    AF::transform TR = atr;
+    AF::SRsphere_tree::align_icp(
+        get_model_sphere_tree(aid),
+        get_model_sphere_tree(bid),
+        level, TR);
+    models.at(bid)->set_transform(TR);
+}
+
 void restoreEMD() {
     int aid = -1, bid = -1;
     for(int i = 0; i < models_select.size(); i++) {
@@ -402,6 +434,7 @@ void restoreEMD() {
     av.ty = 0;
     av.tz = 0;
             //av.scale = 1;
+    atr.identity();
 }
 
 // GUI for Shape Retrieval.
@@ -522,6 +555,9 @@ void SRmenu_EMD() {
         }
         if(ImGui::Button("Test 2 : Align EMD")) {
             testEMD2(level);
+        }
+        if(ImGui::Button("Test 3 : Align ICP")) {
+            testEMD3(level);
         }
         if(ImGui::Button("Restore")) {
             restoreEMD();
