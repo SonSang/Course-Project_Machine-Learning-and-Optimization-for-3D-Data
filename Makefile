@@ -1,7 +1,7 @@
 # ================================================= GCC
 CC = g++ -std=c++17
 DEBUG = -g
-OPTIM = -O3
+OPTIM = -O3 -march=native -ffast-math
 TARGET = ./Output/GCC/main.exe
 TARGET_REL = ./Output/GCC/mainr.exe
 
@@ -164,7 +164,7 @@ gcc : $(LIB)
 	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
 
 gcc_rel : $(LIB_REL)
-	$(CC) main.cpp $(INCLUDE_PCL) $(LD) $(OPTIM) -o $(TARGET_REL) 
+	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(OPTIM) -o $(TARGET_REL) 
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH
@@ -241,7 +241,7 @@ $(LIB_SR_REL) : $(OBJ_SR_REL)
 	ar rc $(LIB_SR_REL) $^
 
 $(ODIR_SR_REL)/%.o : $(DIR_SR)/%.cpp
-	$(CC) $(OPTIM) $(INCLUDE_PCL) -c -o $@ $<
+	$(CC) $(OPTIM) $(INCLUDE_PCL) $(INCLUDE_DLIB) -c -o $@ $<
 
 # IMGUI
 gcc_imgui : $(OBJ_IMGUI)
@@ -396,6 +396,15 @@ clean_gcc :
 	rm $(ODIR_SR)/*.o $(LDIR_SR)/*.a		\
 	rm $(ODIR_IMGUI)/*.o $(LDIR_IMGUI)/*.a 	\
 	rm Output/GCC/*.exe
+
+clean_rel :
+	rm $(ODIR_MATH_REL)/*.o $(LDIR_MATH_REL)/*.a 	\
+	rm $(ODIR_GEOM_REL)/*.o $(LDIR_GEOM_REL)/*.a	\
+	rm $(ODIR_REND_REL)/*.o $(LDIR_REND_REL)/*.a	\
+	rm $(ODIR_SR_REL)/*.o $(LDIR_SR_REL)/*.a		\
+	rm $(ODIR_IMGUI_REL)/*.o $(LDIR_IMGUI_REL)/*.a 	\
+	rm Output/GCC/*.exe
+
 
 clean_emcc :
 	rm $(EMCC_ODIR_MATH)/*.bc $(EMCC_LDIR_MATH)/*.bc 	\
