@@ -214,15 +214,15 @@ namespace AF {
 			cur_node_size *= multiplier;
 			height++;
 		}			
-		cur_node_size /= multiplier;
+		cur_node_size /= multiplier;	// Since we do not include original model data in this tree,
+		height--;						// we have to exclude the final level from this tree.
 
-		if(cur_node_size > 1024) {
+		if(cur_node_size > 1024) {		// # of leaf nodes should not exceed 1024.
 			cur_node_size = 1024;
-			multiplier = 4;
-			height = 7;
+			height = 6;
 		}
 
-		int cur_level = height;
+		int cur_level = height + 1;		// Original model data. This will be culled out in the last stage of this algorithm.
 		for (auto it = sphere_cloud.begin(); it != sphere_cloud.end(); it++) {
 			int id = (int)tree.size();
 			
@@ -336,6 +336,46 @@ namespace AF {
 			cur_node_size /= multiplier;
 		} while (cur_node_size > 0);
 		root = tree.size() - 1;
+
+		// Now, we have to cull out unnecessary data structure...
+		int nsize = 0, nadd = 1;
+		for(int i = 0; i < height; i++) {
+			nsize += nadd;
+			nadd *= multiplier;
+		}
+		std::vector<node> ntree;
+		ntree.resize(nsize);
+
+		struct torganizer {
+			int treeId;
+			int parentId;
+			int myId;
+			torganizer(int a, int b, int c) : treeId(a), parentId(b), myId(c){}
+		};
+		std::deque<torganizer> queue;
+		queue.push_back(torganizer(root, -1, 0));	// 0 for root
+		int curId = 1;
+		while(!queue.empty()) {
+			auto item = queue.front(); queue.pop_front();
+			node N = tree.at(item.treeId);
+			N.parent = item.parentId;
+			
+			if(N.level < height) {
+				std::vector<int> nchild;
+				for(auto it = N.child.begin(); it != N.child.end(); it++) {
+					queue.push_back(torganizer(*it, item.myId, curId));
+					nchild.push_back(curId);
+					curId++;
+				}
+				N.child = nchild;
+			}
+			else 
+				N.child.clear();
+
+			ntree.at(item.myId) = N;
+		}
+		tree = ntree;
+		root = 0;
 	}
 
 	SRsphere triangle_sphere(const vec3d &a, const vec3d &b, const vec3d &c) {
@@ -712,10 +752,10 @@ namespace AF {
 	// Rendering.
 	void SRsphere_tree::build_render() {
 		for(auto it = tree.begin(); it != tree.end(); it++) {
-			if(it->level >= 7)
-				continue;
-			if(tree.at(it->child.at(0)).parent != std::distance(tree.begin(), it))
-				continue;
+			// if(it->level >= 7)
+			// 	continue;
+			// if(tree.at(it->child.at(0)).parent != std::distance(tree.begin(), it))
+			// 	continue;
 			auto &S = it->S.get_geometry();
 			it->S.set_shader(this->get_shader());
 			it->S.build_BO_mesh3(S.get_mesh2());
@@ -746,7 +786,7 @@ namespace AF {
 		cur_level--;
 		for(auto it = tree.begin(); it != tree.end(); it++) {
 			if(it->level == cur_level) {
-				if(tree.at(it->child.at(0)).parent == std::distance(tree.begin(), it))
+				//if(tree.at(it->child.at(0)).parent == std::distance(tree.begin(), it))
 					render_nodes.push_back(std::distance(tree.begin(), it));
 			}
 		}
@@ -769,7 +809,7 @@ namespace AF {
 		cur_level++;
 		for(auto it = tree.begin(); it != tree.end(); it++) {
 			if(it->level == cur_level) {
-				if(tree.at(it->child.at(0)).parent == std::distance(tree.begin(), it))
+				//if(tree.at(it->child.at(0)).parent == std::distance(tree.begin(), it))
 					render_nodes.push_back(std::distance(tree.begin(), it));
 			}
 		}
@@ -792,8 +832,8 @@ namespace AF {
 	}
 	void SRsphere_tree::render() const noexcept {
 		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
-			if(tree.at(*it).level >= 7) 
-				continue;
+			// if(tree.at(*it).level >= 7) 
+			// 	continue;
 			tree.at(*it).S.render();
 		}
 	}
