@@ -769,6 +769,11 @@ namespace AF {
 
 	// Rendering.
 	void SRsphere_tree::build_render() {
+		// We can reuse a single sphere information for all the spheres in this tree.
+		property_render_geometry<SRsphere> sample;
+		sample.get_geometry().set_center(vec3d(0, 0, 0));
+		sample.get_geometry().set_radius(1.0);
+		sample.build_BO_mesh3(sample.get_geometry_c().get_mesh3());
 		for(auto it = tree.begin(); it != tree.end(); it++) {
 			// if(it->level >= 7)
 			// 	continue;
@@ -776,7 +781,8 @@ namespace AF {
 			// 	continue;
 			auto &S = it->S.get_geometry();
 			it->S.set_shader(this->get_shader());
-			it->S.build_BO_mesh3(S.get_mesh2());
+			it->S.set_BO(sample.get_BO());
+			//it->S.build_BO_mesh3(S.get_mesh2());
 			it->S.get_config().M = it->S.get_config().WIREFRAME;	
 		}
 		render_nodes.clear();
@@ -864,6 +870,24 @@ namespace AF {
 		for(auto it = render_nodes.begin(); it != render_nodes.end(); it++) {
 			// if(tree.at(*it).level >= 7) 
 			// 	continue;
+
+			// Since we use Unit sphere's rendering info, update Matrix info.
+			// This is not correct, but for improvisation...
+			transform TR;
+			TR.identity();
+			rotation R;
+			translation T;
+			for(int i = 0; i < 3; i++) {
+				T[i] = tree.at(*it).S.get_geometry_c().get_center()[i];
+				R[i][i] = tree.at(*it).S.get_geometry_c().get_radius();
+				for(int j = 0; j < 3; j++) {
+					if(i != j) R[i][j] = 0.0;
+				}
+			}
+			TR.set_rotation(R);
+			TR.set_translation(T);
+
+			tree.at(*it).S.get_shader_c().set_uniform_model_matrix(TR);
 			tree.at(*it).S.render();
 		}
 	}

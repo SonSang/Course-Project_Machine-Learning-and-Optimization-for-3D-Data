@@ -57,6 +57,9 @@ namespace AF {
         void set_shader(const shader &SH);
         shader& get_shader() noexcept;
         const shader& get_shader_c() const noexcept;
+
+        void set_BO(const buffer_object &BO);
+        buffer_object get_BO();
         
         virtual void build_BO();
         virtual void render() const noexcept;

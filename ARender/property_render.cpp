@@ -16,6 +16,12 @@ namespace AF {
     void property_render::set_valid(bool v) {
         this->valid = v;
     }
+    void property_render::set_BO(const buffer_object &BO) {
+        this->BO = BO;
+    }
+    property_render::buffer_object property_render::get_BO() {
+        return this->BO;
+    }
     void property_render::build_BO() {
         return;
     }
