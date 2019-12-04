@@ -110,6 +110,7 @@ namespace AF {
 		// Rendering functions.
 		std::vector<int> render_nodes;		// Nodes that are currently rendered.
 		void build_render(); 				// Set rendering info of each nodes.
+		void destroy_render();				// Free rendering information.
 		std::set<int> get_level_set(int) const;	// Get nodes at certain level.
 		void get_level_set(int level, int &first, int &last) const;	// Get first and last index of certain level.
 		void render_nodes_parent();			// Set [ render_nodes ] to parents of current ones.

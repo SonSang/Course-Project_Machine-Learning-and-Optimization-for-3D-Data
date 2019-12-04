@@ -788,6 +788,15 @@ namespace AF {
 		render_nodes.clear();
 		render_nodes.push_back(root);
 	}
+	void SRsphere_tree::destroy_render() {
+		auto BO = tree.at(0).S.get_BO();
+		for(auto it = BO.VBO.begin(); it != BO.VBO.end(); it++) {
+			glDeleteBuffers(1, &(*it));
+		}
+		for(auto it = BO.EBO.begin(); it != BO.EBO.end(); it++) {
+			glDeleteBuffers(1, &(*it));
+		}
+	}
 	std::set<int> SRsphere_tree::get_level_set(int level) const {
 		std::set<int> ret;
 		std::vector<int> queue;

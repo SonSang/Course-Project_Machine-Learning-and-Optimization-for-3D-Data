@@ -43,10 +43,11 @@ AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
 static bool SRmenu_on = false;  // Menu toggler
 
-AF::SRsearch_tree   DB;     // Search DB
-
 std::vector<std::shared_ptr<AF::object>> models;
 std::vector<bool> models_select;
+
+AF::SRsearch_tree   DB;     // Search DB
+std::shared_ptr<AF::object> search_model;
 
 void init_camera() {
     MC.set_position(0, 0, 1);
@@ -88,14 +89,6 @@ void window_event(const SDL_Event &e, bool &done) {
     }
 }
 
-AF::property_render_geometry<AF::rmesh3>& get_model_mesh(int id) {
-    return *(*models.at(id)->get_property<AF::property_render_geometry<AF::rmesh3>>().begin());
-}
-
-AF::SRsphere_tree& get_model_sphere_tree(int id) {
-    return *(*models.at(id)->get_property<AF::SRsphere_tree>().begin());
-}
-
 void keyboard_event(const SDL_Event &e, bool &done) {
     switch(e.type) {
     case SDL_KEYDOWN:
@@ -135,6 +128,16 @@ void keyboard_event(const SDL_Event &e, bool &done) {
     }
 }
 
+// ============================================================================================================
+AF::property_render_geometry<AF::rmesh3>& get_model_mesh(int id) {
+    return *(*models.at(id)->get_property<AF::property_render_geometry<AF::rmesh3>>().begin());
+}
+
+AF::SRsphere_tree& get_model_sphere_tree(int id) {
+    return *(*models.at(id)->get_property<AF::SRsphere_tree>().begin());
+}
+
+// ====================================================================== model ===============================
 void import_model(const std::string &path) {
     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
@@ -161,6 +164,7 @@ void import_model(const std::string &path) {
 
     // ALWAYS SHADER FIRST!
     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
+    ptr->get_geometry().scale_norm();
     tptr->set_shader(ptr->get_shader_c());
     //ptr->get_geometry().scale_norm();
 
@@ -186,6 +190,9 @@ void import_model(const std::string &path) {
     SM.add_object_property(cobj->get_id(), ptr);
     SM.add_object_property(cobj->get_id(), tptr);
     models.push_back(cobj);
+
+    // build sphere tree when import.
+    tptr->build(ptr->get_geometry_c());
 }
 
 void compute_normal(int id) {
@@ -213,7 +220,7 @@ void build_sphere_tree(int id) {
     pc = get_model_mesh(id).get_geometry().get_vertex_set();
     //get_model_sphere_tree(id).build(pc);
     get_model_sphere_tree(id).build(get_model_mesh(id).get_geometry());
-    get_model_sphere_tree(id).build_render();
+    //get_model_sphere_tree(id).build_render();
 }
 
 bool ma_flip = true;
@@ -244,6 +251,7 @@ void update_models_select() {
         models_select[i] = false;
 }
 
+// ===================================================================== emd ====================================
 static AF::SRsphere_tree::align_var av(0, 0, 0, 0, 0, 0);
 static AF::transform atr;
 void testEMD1(int level) {
@@ -440,10 +448,41 @@ void restoreEMD() {
     atr.identity();
 }
 
+// ====================================================================== search ==================================
+static int search_tree_node = -1;
+static int search_tree_rmode = 0;
+
+void show_search_tree_node() {
+    static bool init = false;
+    if(!init) {
+        search_model = std::make_shared<AF::object>("Search Tree Model");
+        SM.get_object_manager().add_object(search_model);
+        init = true;
+    }
+    else {
+        (*(search_model->get_property<AF::SRsphere_tree>().begin()))->destroy_render();
+        search_model->delete_derived_property<AF::property_render>();
+    }
+    std::shared_ptr<AF::SRsphere_tree>
+        tptr = std::make_shared<AF::SRsphere_tree>(DB.tree.at(search_tree_node).ST);
+    tptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    tptr->build_render();
+    int level = DB.tree.at(search_tree_node).level;
+    for(int i = 1; i < level; i++)
+        tptr->render_nodes_child();
+    tptr->set_valid(true);
+    tptr->set_render_mode(search_tree_rmode);
+    SM.add_object_property(search_model->get_id(), tptr);
+}
+
 void search_tree_ui_rec(int node) {
     if(node < 0 || node >= DB.tree.size())
         return;
     if(ImGui::TreeNode((void *)node, "Node %d (%d)", node, DB.tree.at(node).level)) {
+        if(ImGui::Button("Show")) {
+            search_tree_node = node;
+            show_search_tree_node();
+        }
         const auto &child = DB.tree.at(node).child;
         for(auto it = child.begin(); it != child.end(); it++)
             search_tree_ui_rec(*it);
@@ -454,9 +493,18 @@ void search_tree_ui_rec(int node) {
 void search_tree_ui() {
     if(DB.tree.empty())
         return;
+    if(ImGui::Button("Change render mode")) {
+        if(search_tree_rmode == 0)
+            search_tree_rmode = 1;
+        else 
+            search_tree_rmode = 0;
+        if(search_tree_node != -1)
+            show_search_tree_node();
+    }
     search_tree_ui_rec(DB.root);
 }
 
+// ====================================================================== UI ======================================
 // GUI for Shape Retrieval.
 void SRmenu_model();
 void SRmenu_EMD();
@@ -492,14 +540,20 @@ void SRmenu_model() {
             if(ImGui::Button("Change render")) 
                 change_render_mode(id);     
             ImGui::SameLine();
-            if(ImGui::Button("Build STree"))
-                build_sphere_tree(id);
+            // if(ImGui::Button("Build STree"))
+            //     build_sphere_tree(id);
             ImGui::SameLine();
             // if(ImGui::Button("Build STree(MEDIAL)"))
             //     build_medial_axis(id);
             // ImGui::SameLine();
-            if(ImGui::Button("Toggle STree"))
+            if(ImGui::Button("Toggle STree")) {
                 get_model_sphere_tree(id).set_valid(!get_model_sphere_tree(id).is_valid());
+                if(get_model_sphere_tree(id).is_valid())
+                    get_model_sphere_tree(id).build_render();
+                else
+                    get_model_sphere_tree(id).destroy_render();
+            }
+                
             ImGui::SameLine();
             if(ImGui::Button("STree Lower"))
                 get_model_sphere_tree(id).render_nodes_child();
