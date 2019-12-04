@@ -91,6 +91,11 @@
         "*.tcc": "cpp",
         "filesystem": "cpp",
         "memory_resource": "cpp",
-        "cfenv": "cpp"
+        "cfenv": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "forward_list": "cpp",
+        "csignal": "cpp",
+        "typeindex": "cpp"
     }
 }

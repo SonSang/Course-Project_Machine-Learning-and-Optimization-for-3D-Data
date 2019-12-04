@@ -25,6 +25,7 @@
 #include "ARender/render_geometry.hpp"
 #include "ShapeRetrieval/SRsphere_tree.hpp"
 #include "ShapeRetrieval/SRcgal_interface.hpp"
+#include "ShapeRetrieval/SRsearch_tree.hpp"
 #include <iostream>
 
 // Imgui
@@ -41,6 +42,8 @@ AF::camera          MC;     // Main Camera
 AF::mouse           MM;     // Main Mouse
 AF::scene_manager   SM;     // Scene Manager
 static bool SRmenu_on = false;  // Menu toggler
+
+AF::SRsearch_tree   DB;     // Search DB
 
 std::vector<std::shared_ptr<AF::object>> models;
 std::vector<bool> models_select;
@@ -437,17 +440,34 @@ void restoreEMD() {
     atr.identity();
 }
 
+void search_tree_ui_rec(int node) {
+    if(node < 0 || node >= DB.tree.size())
+        return;
+    if(ImGui::TreeNode((void *)node, "Node %d (%d)", node, DB.tree.at(node).level)) {
+        const auto &child = DB.tree.at(node).child;
+        for(auto it = child.begin(); it != child.end(); it++)
+            search_tree_ui_rec(*it);
+        ImGui::TreePop();
+    }
+}
+
+void search_tree_ui() {
+    if(DB.tree.empty())
+        return;
+    search_tree_ui_rec(DB.root);
+}
+
 // GUI for Shape Retrieval.
 void SRmenu_model();
-void SRmenu_merge();
 void SRmenu_EMD();
+void SRmenu_search();
 
 void SRmenu() {
     ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
     if(ImGui::CollapsingHeader("Model"))
         SRmenu_model();
-    if(ImGui::CollapsingHeader("Merge"))
-        SRmenu_merge();
+    if(ImGui::CollapsingHeader("Search"))
+        SRmenu_search();
     if(ImGui::CollapsingHeader("EMD"))
         SRmenu_EMD();
     ImGui::End();
@@ -515,32 +535,6 @@ void SRmenu_model() {
         ImGui::Separator();
     }
 }
-void SRmenu_merge() {
-    if(ImGui::TreeNode("Select models")) {
-        for(auto it = models.begin(); it != models.end(); it++) {
-            bool b = models_select.at(std::distance(models.begin(), it));
-            ImGui::Checkbox((*it)->get_name().c_str(), &b);
-            models_select.at(std::distance(models.begin(), it)) = b;
-        }
-        if(ImGui::Button("Select All")) {
-            for(auto it = models_select.begin(); it != models_select.end(); it++)
-                (*it) = true;
-        }
-        ImGui::SameLine();
-        if(ImGui::Button("Deselect All")) {
-            for(auto it = models_select.begin(); it != models_select.end(); it++)
-                (*it) = false;
-        }
-        ImGui::SameLine();
-        if(ImGui::Button("Merge")) {
-            // THIS IS WHERE TREE BUILDING ALGORITHM GOES IN....
-        }
-        ImGui::TreePop();
-    }
-    if(ImGui::TreeNode("Result tree")) {
-        ImGui::TreePop();
-    }
-}
 void SRmenu_EMD() {
     if(ImGui::TreeNode("Select two models")) {
         for(auto it = models.begin(); it != models.end(); it++) {
@@ -562,6 +556,43 @@ void SRmenu_EMD() {
         if(ImGui::Button("Restore")) {
             restoreEMD();
         }
+        ImGui::TreePop();
+    }
+}
+void SRmenu_search() {
+    if(ImGui::TreeNode("Select models")) {
+        for(auto it = models.begin(); it != models.end(); it++) {
+            if(DB.model_node_map.find((*it)->get_id()) != DB.model_node_map.end())
+                continue;
+            bool b = models_select.at(std::distance(models.begin(), it));
+            ImGui::Checkbox((*it)->get_name().c_str(), &b);
+            models_select.at(std::distance(models.begin(), it)) = b;
+        }
+        if(ImGui::Button("Select All")) {
+            for(auto it = models_select.begin(); it != models_select.end(); it++) 
+                (*it) = true;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Deselect All")) {
+            for(auto it = models_select.begin(); it != models_select.end(); it++)
+                (*it) = false;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Add DB")) {
+            // THIS IS WHERE TREE BUILDING ALGORITHM GOES IN....
+            for(int i = 0; i < models_select.size(); i++) {
+                if(!models_select[i])
+                    continue;
+                unsigned int model_id = models.at(i)->get_id();
+                if(DB.model_node_map.find(model_id) != DB.model_node_map.end())
+                    continue;
+                DB.add(models.at(i));
+            }
+        }
+        ImGui::TreePop();
+    }
+    if(ImGui::TreeNode("Result tree")) {
+        search_tree_ui();
         ImGui::TreePop();
     }
 }

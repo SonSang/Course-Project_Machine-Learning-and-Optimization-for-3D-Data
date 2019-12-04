@@ -210,7 +210,7 @@ namespace AF {
 		// Number of nodes for current level.
 		int cur_node_size = 1;
 		height = 1;
-		while(cur_node_size < sphere_cloud.size()) {
+			while(cur_node_size <= sphere_cloud.size()) {
 			cur_node_size *= multiplier;
 			height++;
 		}			
@@ -749,6 +749,24 @@ namespace AF {
 		return pow((total_volume / pi) * 0.75, 1.0 / 3.0);
 	}
 
+	SRsphere_set SRsphere_tree::get_sphere_set(int level) const {
+		int first, last;
+		get_level_set(level, first, last);
+		SRsphere_set ret;
+		ret.set.reserve(last - first);
+		for(int i = first; i < last; i++) 
+			ret.set.push_back(tree[i].S.get_geometry_c());
+		return ret;
+	}
+
+	void SRsphere_tree::applyTR(const transform &TR) {
+		for(auto it = tree.begin(); it != tree.end(); it++) {
+			SRsphere S = it->S.get_geometry_c();
+			S.set_center(TR.apply(S.get_center()));
+			it->S.set_geometry(S);
+		}
+	}
+
 	// Rendering.
 	void SRsphere_tree::build_render() {
 		for(auto it = tree.begin(); it != tree.end(); it++) {
@@ -776,6 +794,18 @@ namespace AF {
 				queue.insert(queue.end(), tree[n].child.begin(), tree[n].child.end());
 		}
 		return ret;
+	}
+	void SRsphere_tree::get_level_set(int level, int &first, int &last) const {
+		if(level < 1 || level > 6) {
+			throw(std::invalid_argument("Invalid level."));
+		}
+		first = 0;
+		int add = 1;
+		for(int i = 0; i < level - 1; i++) {
+			first += add;
+			add *= 4;
+		}
+		last = first + add;
 	}
 	void SRsphere_tree::render_nodes_parent() {
 		int cur_level = tree.at(render_nodes.at(0)).level;
@@ -978,6 +1008,18 @@ namespace AF {
 
 		return EMD;
 	}
+	double SRsphere_tree::compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR) {
+		if(level > 6 || level < 1) 
+			throw(std::invalid_argument("Level must be lower than 7"));
+    
+		AF::SRsphere_tree bcopy = b;		
+		for(auto it = bcopy.tree.begin(); it != bcopy.tree.end(); it++) {
+			if(it->level > level) continue;
+			AF::SRsphere &S = it->S.get_geometry();
+			S.set_center(bTR.apply(S.get_center()));
+		}
+		return AF::SRsphere_tree::compute_pseudo_emd(a, bcopy, level);
+	}
 	void SRsphere_tree::test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB) {
 		if(level < 0 || level > a.height || level > b.height)  
 			throw(std::invalid_argument("Invalid tree level for collision detection."));
@@ -1036,6 +1078,82 @@ namespace AF {
 			if(it->second.get_radius() > 0)
 				subB.push_back(it->second);
 		}
+	}
+
+	double SRsphere_tree::compute_level_volume(int level) const {
+		if(level > 6 || level < 1) 
+			throw(std::invalid_argument("Level must be lower than 7"));
+		
+		double ret = 0;
+		std::vector<SRsphere> spheres = get_sphere_set(level).set;
+		for(auto it = spheres.begin(); it != spheres.end(); it++) {
+			double radius = it->get_radius();
+			ret += radius * radius * radius;
+		}
+		return ret * (4.0 / 3.0) * pi;
+	}
+	void SRsphere_tree::compute_pseudo_emd_spec(const SRsphere_tree &a, const SRsphere_tree &b, int level, 
+												double &emd_a, double &emd_b) {
+		if(level < 0 || level > a.height || level > b.height)  
+			throw(std::invalid_argument("Invalid tree level for collision detection."));
+
+		// 1. Extract subset of each tree's sphere set that is not covered by the other's spheres.
+		std::map<int, SRsphere> level_set_a;
+		std::map<int, SRsphere> level_set_b;	// node - sphere pairs.
+
+		std::set<int> level_a = a.get_level_set(level);
+		std::set<int> level_b = b.get_level_set(level);
+
+		for(auto it = level_a.begin(); it != level_a.end(); it++) 
+			level_set_a.insert({*it, a.tree.at(*it).S.get_geometry_c()});
+		for(auto it = level_b.begin(); it != level_b.end(); it++) 
+			level_set_b.insert({*it, b.tree.at(*it).S.get_geometry_c()});
+
+		using idpair = std::pair<int, int>;
+		std::vector<idpair> queue;					// ( other.id, this.id )
+
+		queue.push_back(idpair(a.root, b.root));
+		while(!queue.empty()) {
+			idpair ip = queue.back(); queue.pop_back();
+			int aid = ip.first, bid = ip.second;
+			const auto &nodeA = a.tree.at(aid);
+			const auto &nodeB = b.tree.at(bid);
+			if(SRsphere::overlap(nodeA.S.get_geometry_c(), nodeB.S.get_geometry_c())) {
+				bool is_level_a = (nodeA.level == level);
+				bool is_level_b = (nodeB.level == level);
+				if(is_level_a && is_level_b) {
+					level_set_a.at(aid).subtract(nodeB.S.get_geometry_c());
+					level_set_b.at(bid).subtract(nodeA.S.get_geometry_c());
+				}
+				else if(is_level_a) {
+					for(auto it = nodeB.child.begin(); it != nodeB.child.end(); it++)
+						queue.push_back(idpair(aid, *it));
+				}
+				else if(is_level_b) {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++)
+						queue.push_back(idpair(*it, bid));
+				}
+				else {
+					for(auto it = nodeA.child.begin(); it != nodeA.child.end(); it++) 
+						for(auto it2 = nodeB.child.begin(); it2 != nodeB.child.end(); it2++)
+							queue.push_back(idpair(*it, *it2));
+				}
+			}
+		}
+
+		// 2. Compute EMD : Just add up all sphere's volume!
+		emd_a = 0;
+		emd_b = 0;
+		for(auto it = level_set_a.begin(); it != level_set_a.end(); it++) {
+			double r = it->second.get_radius();
+			emd_a += r * r * r;
+		}
+		for(auto it = level_set_b.begin(); it != level_set_b.end(); it++) {
+			double r = it->second.get_radius();
+			emd_b += r * r * r;
+		}
+		emd_a *= (4.0 / 3.0) * pi;
+		emd_b *= (4.0 / 3.0) * pi;
 	}
 
 	typedef dlib::matrix<double, 0, 1> column_vector;

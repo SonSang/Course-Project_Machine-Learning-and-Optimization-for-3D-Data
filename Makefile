@@ -55,7 +55,9 @@ LDIR_SR = $(DIR_SR)/lib
 OBJ_SR = 	$(ODIR_SR)/SRsphere.o		\
 			$(ODIR_SR)/SRsphere_tree.o	\
 			$(ODIR_SR)/SRpcl_interface.o	\
-			$(ODIR_SR)/SRcgal_interface.o
+			$(ODIR_SR)/SRcgal_interface.o	\
+			$(ODIR_SR)/SRsphere_set.o 		\
+			$(ODIR_SR)/SRsearch_tree.o
 LIB_SR = $(LDIR_SR)/libsr.a
 LD_SR = -L$(LDIR_SR)/ -lsr
 

@@ -6,6 +6,7 @@
 #endif
 
 #include "SRsphere.hpp"
+#include "SRsphere_set.hpp"
 //#include "SRpcl_interface.hpp"
 #include "../ARender/property_render_geometry.hpp"
 #include "../Dependencies/nanoflann/include/nanoflann.hpp"
@@ -101,10 +102,16 @@ namespace AF {
 		// Compute allowable offset from a sphere's center for given surplus volume.
 		double compute_valid_offset(int id, double surplus_volume) const;
 
+		// Return sphere set at certain level.
+		SRsphere_set get_sphere_set(int level) const;
+
+		void applyTR(const transform &TR);
+
 		// Rendering functions.
 		std::vector<int> render_nodes;		// Nodes that are currently rendered.
 		void build_render(); 				// Set rendering info of each nodes.
 		std::set<int> get_level_set(int) const;	// Get nodes at certain level.
+		void get_level_set(int level, int &first, int &last) const;	// Get first and last index of certain level.
 		void render_nodes_parent();			// Set [ render_nodes ] to parents of current ones.
 		void render_nodes_child();			// Set [ render_nodes ] to child of current ones.
 		void set_render_mode(int mode);		// Set render mode for spheres : 0 for wireframe, 1 for phong.
@@ -132,9 +139,15 @@ namespace AF {
 
 		// Compute pseudo Earth Moving Distance(EMD) between two trees.
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level);
+		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR);
 		// Test : return residual spheres...
 		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB);
 		
+		// Compute whole volume of spheres at certain level.
+		double compute_level_volume(int level) const;
+		// Compute specific pseudo EMD.
+		static void compute_pseudo_emd_spec(const SRsphere_tree &a, const SRsphere_tree &b, int level, double &emd_a, double &emd_b);
+
 		static transform alignTR(const align_var &param);
 		// Align [ source ] model to [ base model ] using [ param ] variables.
 		// We use non-linear optimization technique to find best alignment.
