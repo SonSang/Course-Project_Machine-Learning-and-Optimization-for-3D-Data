@@ -1,11 +1,11 @@
 #include "SRsphere_tree.hpp"
 
 // For building sphere tree.
-#include "../Dependencies/nanoflann/examples/utils.hpp"
+#include "../Dependencies/nanoflann/examples/utils.h"
 
 // For nonlinear optimization.
-#include "dlib/optimization.h"
-#include "dlib/global_optimization.h"
+// #include "dlib/optimization.h"
+// #include "dlib/global_optimization.h"
 
 // For ICP method.
 #include <pcl/io/pcd_io.h>
@@ -1156,118 +1156,6 @@ namespace AF {
 		emd_b *= (4.0 / 3.0) * pi;
 	}
 
-	typedef dlib::matrix<double, 0, 1> column_vector;
-	SRsphere_tree optim_base;
-	SRsphere_tree optim_source;
-	SRsphere_tree optim_source_copy;
-	int optim_level;
-
-	void align(SRsphere_tree &source, int level, const column_vector &param) {
-		double 
-			cosx = cos(param(0)),
-			sinx = sin(param(0)),
-			cosy = cos(param(1)),
-			siny = sin(param(1)),
-			cosz = cos(param(2)),
-			sinz = sin(param(2));
-		transform TR;
-		rotation R;
-		translation T;
-		R.set(0, 0, cosz * cosy);
-		R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
-		R.set(0, 2, sinz * sinx + cosz * siny * cosx);
-		R.set(1, 0, sinz * cosy);
-		R.set(1, 1, cosz * cosx + sinz * siny * sinx);
-		R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
-		R.set(2, 0, -siny);
-		R.set(2, 1, cosy * sinx);
-		R.set(2, 2, cosy * cosx);
-		// for(int i = 0; i < 3; i++) 
-		// 	for(int j = 0; j < 3; j++)
-		// 		R.set(i, j, R[i][j] * param(6));
-		T.set(param(3), param(4), param(5));
-		
-		TR.set_rotation(R);
-		TR.set_translation(T);
-
-		std::vector<int> queue;
-		queue.push_back(source.root);
-		while(!queue.empty()) {
-			int n = queue.back(); queue.pop_back();
-			if(source.tree[n].level <= level) {
-				auto &S = source.tree[n].S.get_geometry();
-				S.set_center(TR.apply(S.get_center()));
-				//S.set_radius(S.get_radius() * param(6));
-
-				if(source.tree[n].level != level)
-					queue.insert(queue.end(), source.tree[n].child.begin(), source.tree[n].child.end());
-			}
-		}
-	}
-	double align_emd_funct(const column_vector &v) {
-		optim_source_copy = optim_source;
-		align(optim_source_copy, optim_level, v);
-		return SRsphere_tree::compute_pseudo_emd(optim_base, optim_source_copy, optim_level);
-	}
-	transform SRsphere_tree::alignTR(const align_var &param) {
-		double 
-			cosx = cos(param.rx),
-			sinx = sin(param.rx),
-			cosy = cos(param.ry),
-			siny = sin(param.ry),
-			cosz = cos(param.rz),
-			sinz = sin(param.rz);
-		rotation R;
-		translation T;
-		R.set(0, 0, cosz * cosy);
-		R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
-		R.set(0, 2, sinz * sinx + cosz * siny * cosx);
-		R.set(1, 0, sinz * cosy);
-		R.set(1, 1, cosz * cosx + sinz * siny * sinx);
-		R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
-		R.set(2, 0, -siny);
-		R.set(2, 1, cosy * sinx);
-		R.set(2, 2, cosy * cosx);
-		// for(int i = 0; i < 3; i++) 
-		// 	for(int j = 0; j < 3; j++)
-		// 		R.set(i, j, R[i][j] * param.scale);
-		T.set(param.tx, param.ty, param.tz);
-
-		transform TR;
-		TR.set_rotation(R);
-		TR.set_translation(T);
-		return TR;
-	}
-	void SRsphere_tree::align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param) {
-		optim_base = base;
-		optim_source = source;
-		optim_level = level;
-		column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz };//, param.scale };
-		dlib::find_min_using_approximate_derivatives(
-			dlib::bfgs_search_strategy(), 
-			dlib::objective_delta_stop_strategy(1e-5, 10),
-			align_emd_funct, vp, -1, 1e-3
-		);
-		param.rx = vp(0);
-		param.ry = vp(1);
-		param.rz = vp(2);
-		param.tx = vp(3);
-		param.ty = vp(4);
-		param.tz = vp(5);
-		//param.scale = vp(6);
-		// auto result = dlib::find_min_global(
-		// 	align_emd_funct,
-		// 	{ 0, 0, 0, -1, -1, -1},
-		// 	{ pi20, pi20, pi20, 1, 1, 1},
-		// 	dlib::max_function_calls(300)
-		// );
-		// param.rx = result.x(0);
-		// param.ry = result.x(1);
-		// param.rz = result.x(2);
-		// param.tx = result.x(3);
-		// param.ty = result.x(4);
-		// param.tz = result.x(5);
-	}
 	void SRsphere_tree::align_icp(const SRsphere_tree &base, const SRsphere_tree &source, int level, transform &TR) {
 		pcl::PointCloud<pcl::PointXYZ>::Ptr basePCL(new pcl::PointCloud<pcl::PointXYZ>);
 		pcl::PointCloud<pcl::PointXYZ>::Ptr sourcePCL(new pcl::PointCloud<pcl::PointXYZ>);
@@ -1332,4 +1220,117 @@ namespace AF {
 		TR.set_rotation(R);
 		TR.set_translation(T);
 	}
+
+	// typedef dlib::matrix<double, 0, 1> column_vector;
+	// SRsphere_tree optim_base;
+	// SRsphere_tree optim_source;
+	// SRsphere_tree optim_source_copy;
+	// int optim_level;
+
+	// void align(SRsphere_tree &source, int level, const column_vector &param) {
+	// 	double 
+	// 		cosx = cos(param(0)),
+	// 		sinx = sin(param(0)),
+	// 		cosy = cos(param(1)),
+	// 		siny = sin(param(1)),
+	// 		cosz = cos(param(2)),
+	// 		sinz = sin(param(2));
+	// 	transform TR;
+	// 	rotation R;
+	// 	translation T;
+	// 	R.set(0, 0, cosz * cosy);
+	// 	R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
+	// 	R.set(0, 2, sinz * sinx + cosz * siny * cosx);
+	// 	R.set(1, 0, sinz * cosy);
+	// 	R.set(1, 1, cosz * cosx + sinz * siny * sinx);
+	// 	R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
+	// 	R.set(2, 0, -siny);
+	// 	R.set(2, 1, cosy * sinx);
+	// 	R.set(2, 2, cosy * cosx);
+	// 	// for(int i = 0; i < 3; i++) 
+	// 	// 	for(int j = 0; j < 3; j++)
+	// 	// 		R.set(i, j, R[i][j] * param(6));
+	// 	T.set(param(3), param(4), param(5));
+		
+	// 	TR.set_rotation(R);
+	// 	TR.set_translation(T);
+
+	// 	std::vector<int> queue;
+	// 	queue.push_back(source.root);
+	// 	while(!queue.empty()) {
+	// 		int n = queue.back(); queue.pop_back();
+	// 		if(source.tree[n].level <= level) {
+	// 			auto &S = source.tree[n].S.get_geometry();
+	// 			S.set_center(TR.apply(S.get_center()));
+	// 			//S.set_radius(S.get_radius() * param(6));
+
+	// 			if(source.tree[n].level != level)
+	// 				queue.insert(queue.end(), source.tree[n].child.begin(), source.tree[n].child.end());
+	// 		}
+	// 	}
+	// }
+	// double align_emd_funct(const column_vector &v) {
+	// 	optim_source_copy = optim_source;
+	// 	align(optim_source_copy, optim_level, v);
+	// 	return SRsphere_tree::compute_pseudo_emd(optim_base, optim_source_copy, optim_level);
+	// }
+	transform SRsphere_tree::alignTR(const align_var &param) {
+		double 
+			cosx = cos(param.rx),
+			sinx = sin(param.rx),
+			cosy = cos(param.ry),
+			siny = sin(param.ry),
+			cosz = cos(param.rz),
+			sinz = sin(param.rz);
+		rotation R;
+		translation T;
+		R.set(0, 0, cosz * cosy);
+		R.set(0, 1, -sinz * cosx + cosz * siny * sinx);
+		R.set(0, 2, sinz * sinx + cosz * siny * cosx);
+		R.set(1, 0, sinz * cosy);
+		R.set(1, 1, cosz * cosx + sinz * siny * sinx);
+		R.set(1, 2, -cosz * sinx + sinz * siny * cosx);
+		R.set(2, 0, -siny);
+		R.set(2, 1, cosy * sinx);
+		R.set(2, 2, cosy * cosx);
+		// for(int i = 0; i < 3; i++) 
+		// 	for(int j = 0; j < 3; j++)
+		// 		R.set(i, j, R[i][j] * param.scale);
+		T.set(param.tx, param.ty, param.tz);
+
+		transform TR;
+		TR.set_rotation(R);
+		TR.set_translation(T);
+		return TR;
+	}
+	// void SRsphere_tree::align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param) {
+	// 	optim_base = base;
+	// 	optim_source = source;
+	// 	optim_level = level;
+	// 	column_vector vp = { param.rx, param.ry, param.rz, param.tx, param.ty, param.tz };//, param.scale };
+	// 	dlib::find_min_using_approximate_derivatives(
+	// 		dlib::bfgs_search_strategy(), 
+	// 		dlib::objective_delta_stop_strategy(1e-5, 10),
+	// 		align_emd_funct, vp, -1, 1e-3
+	// 	);
+	// 	param.rx = vp(0);
+	// 	param.ry = vp(1);
+	// 	param.rz = vp(2);
+	// 	param.tx = vp(3);
+	// 	param.ty = vp(4);
+	// 	param.tz = vp(5);
+	// 	//param.scale = vp(6);
+	// 	// auto result = dlib::find_min_global(
+	// 	// 	align_emd_funct,
+	// 	// 	{ 0, 0, 0, -1, -1, -1},
+	// 	// 	{ pi20, pi20, pi20, 1, 1, 1},
+	// 	// 	dlib::max_function_calls(300)
+	// 	// );
+	// 	// param.rx = result.x(0);
+	// 	// param.ry = result.x(1);
+	// 	// param.rz = result.x(2);
+	// 	// param.tx = result.x(3);
+	// 	// param.ty = result.x(4);
+	// 	// param.tz = result.x(5);
+	// }
 }

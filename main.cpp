@@ -371,10 +371,10 @@ void testEMD2(int level) {
     // EMD test 2 : Simple test, for given two sphere trees and level,
     //              align the second tree to match to the first one as close as possible.
     AF::SRsphere_tree::align_var var = av;
-    AF::SRsphere_tree::align_emd(
-        get_model_sphere_tree(aid),
-        get_model_sphere_tree(bid),
-        level, var);
+    // AF::SRsphere_tree::align_emd(
+    //     get_model_sphere_tree(aid),
+    //     get_model_sphere_tree(bid),
+    //     level, var);
     models.at(bid)->set_transform(AF::SRsphere_tree::alignTR(var));
     av = var;
 }

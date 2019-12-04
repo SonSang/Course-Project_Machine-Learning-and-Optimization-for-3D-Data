@@ -163,7 +163,8 @@ LIB_REL = $(LIB_MATH_REL) $(LIB_GEOM_REL) $(LIB_REND_REL) $(LIB_SR_REL) $(LIB_IM
 LD_REL = $(LIB_SR_REL) $(LIB_REND_REL) $(LIB_GEOM_REL) $(LIB_MATH_REL) $(LIB_IMGUI_REL) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
 
 gcc : $(LIB)
-	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
+	#$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
+	$(CC) main.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
 
 gcc_rel : $(LIB_REL)
 	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(OPTIM) -o $(TARGET_REL) 

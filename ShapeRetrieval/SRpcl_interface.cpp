@@ -1,6 +1,6 @@
 #include "SRpcl_interface.hpp"
-#include "../Dependencies/masbcpp/src/compute_ma_processing.h"
-#include "../Dependencies/masbcpp/src/compute_normals_processing.h"
+// #include "../Dependencies/masbcpp/src/compute_ma_processing.h"
+// #include "../Dependencies/masbcpp/src/compute_normals_processing.h"
 #include <boost/make_shared.hpp>
 
 namespace AF {
@@ -24,32 +24,33 @@ namespace AF {
     }
 
     std::vector<SRsphere> get_pcl_medial_axis_balls(const std::set<vec3d> &mypc, bool flip) {
+        return std::vector<SRsphere>();
         // 1. We use [ masbcpp ] library here.
         // Make data structure to use it.
-        ma_data md;
-        md.coords = get_pcl_point_cloud(mypc);
-        md.normals.reset(new pclNC);
+        // ma_data md;
+        // md.coords = get_pcl_point_cloud(mypc);
+        // md.normals.reset(new pclNC);
 
-        // 2. Compute normals for each point in the cloud.
-        normals_parameters np;
-        np.k = 9;
-        compute_normals(np, md);
+        // // 2. Compute normals for each point in the cloud.
+        // normals_parameters np;
+        // np.k = 9;
+        // compute_normals(np, md);
 
-        // 3. Compute medial axis.
-        ma_parameters mp;
-        mp.initial_radius = 10.0f;
-        mp.denoise_preserve = (pi / 180.0) * 20;
-        mp.denoise_planar = (pi / 180.0) * 32;
-        mp.nan_for_initr = true;
+        // // 3. Compute medial axis.
+        // ma_parameters mp;
+        // mp.initial_radius = 10.0f;
+        // mp.denoise_preserve = (pi / 180.0) * 20;
+        // mp.denoise_planar = (pi / 180.0) * 32;
+        // mp.nan_for_initr = true;
 
-        md.ma_coords.reset(new pclPC);
-        md.ma_coords->resize(2 * md.coords->size());
-        md.ma_qidx.resize(2 * md.coords->size());
-        compute_masb_points(mp, md);
+        // md.ma_coords.reset(new pclPC);
+        // md.ma_coords->resize(2 * md.coords->size());
+        // md.ma_qidx.resize(2 * md.coords->size());
+        // compute_masb_points(mp, md);
 
-        // 4. Make balls and return.
-        int size = md.coords->size();
-        std::vector<SRsphere> ret;
+        // // 4. Make balls and return.
+        // int size = md.coords->size();
+        // std::vector<SRsphere> ret;
 
         // for(int i = 0; i < size; i++) {
         //     SRsphere S;
@@ -97,31 +98,31 @@ namespace AF {
         // }
 
         // Optional 1 : Cull out those spheres who are outside of this model's AABB.
-        double xmin = 1e+10, xmax = -1e+10, ymin = 1e+10, ymax = -1e+10, zmin = 1e+10, zmax = -1e+10;
-        for(auto it = mypc.begin(); it != mypc.end(); it++) {
-            double x = (*it)[0], y = (*it)[1], z = (*it)[2];
-            if(x < xmin) xmin = x;
-            if(x > xmax) xmax = x;
-            if(y < ymin) ymin = y;
-            if(y > ymax) ymax = y;
-            if(z < zmin) zmin = z;
-            if(z > zmax) zmax = z;
-        }
+        // double xmin = 1e+10, xmax = -1e+10, ymin = 1e+10, ymax = -1e+10, zmin = 1e+10, zmax = -1e+10;
+        // for(auto it = mypc.begin(); it != mypc.end(); it++) {
+        //     double x = (*it)[0], y = (*it)[1], z = (*it)[2];
+        //     if(x < xmin) xmin = x;
+        //     if(x > xmax) xmax = x;
+        //     if(y < ymin) ymin = y;
+        //     if(y > ymax) ymax = y;
+        //     if(z < zmin) zmin = z;
+        //     if(z > zmax) zmax = z;
+        // }
 
-        for(int i = 0; i < size; i++) {
-            SRsphere S;
-            int fi = (flip ? i + size : i);
-            if(std::isnan(md.ma_coords->at(fi).x))
-                continue;
-            vec3d cen = get_pcl_vec3d(md.ma_coords->at(fi));
-            vec3d base = get_pcl_vec3d(md.coords->at(i));
-            S.set_center(cen);
-            S.set_radius((cen - base).len());
-            if(sphere_in_box(S, xmin, xmax, ymin, ymax, zmin, zmax))
-                ret.push_back(S);
-        }
+        // for(int i = 0; i < size; i++) {
+        //     SRsphere S;
+        //     int fi = (flip ? i + size : i);
+        //     if(std::isnan(md.ma_coords->at(fi).x))
+        //         continue;
+        //     vec3d cen = get_pcl_vec3d(md.ma_coords->at(fi));
+        //     vec3d base = get_pcl_vec3d(md.coords->at(i));
+        //     S.set_center(cen);
+        //     S.set_radius((cen - base).len());
+        //     if(sphere_in_box(S, xmin, xmax, ymin, ymax, zmin, zmax))
+        //         ret.push_back(S);
+        // }
         
-        return ret;
+        // return ret;
     }
 
     pclOT::Ptr get_pcl_octree(const std::set<vec3d> &mypc) {
