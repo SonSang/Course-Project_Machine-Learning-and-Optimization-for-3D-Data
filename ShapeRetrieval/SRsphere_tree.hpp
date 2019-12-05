@@ -141,6 +141,11 @@ namespace AF {
 		// Compute pseudo Earth Moving Distance(EMD) between two trees.
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level);
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR);
+		
+		// Compute pseudo EMD multiplication between two trees.
+		static double compute_pseudo_emd_mult(const SRsphere_tree &a, const SRsphere_tree &b, int level);
+		static double compute_pseudo_emd_mult(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR);
+
 		// Test : return residual spheres...
 		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB);
 		

@@ -8,16 +8,20 @@ namespace AF {
         modelID5 fits = searchID(stree);
         int leaf_node_id = model_node_map.find(fits[0])->second;
 
-        TR.identity();
-        for(int i = 1; i <= height; i++)
-            SRsphere_tree::align_icp(tree.at(leaf_node_id).ST, stree, i, TR);
+        // @TODO =================================================================== NO ALIGN
+        // TR.identity();
+        // for(int i = 1; i <= height; i++)
+        //     SRsphere_tree::align_icp(tree.at(leaf_node_id).ST, stree, i, TR);
+        // ===================================================================================
         
         return leaf_node_id;
     }
     int SRsearch_tree::find_add_place(SRsphere_tree &stree, transform &TR) {
         int best_leaf_node = find_best_fit(stree, TR);
 
-        stree.applyTR(TR);
+        // @TODO =================================================================== NO ALIGN
+        //stree.applyTR(TR);
+        // ===================================================================================
 
         // Evaluate each level's error compared to entire volume.
         std::vector<int> route_to_leaf;
@@ -169,9 +173,13 @@ namespace AF {
                 for(auto it = models.begin(); it != models.end(); it++) {
                     const auto &ST = get_model_sphere_tree(*it);
                     transform TR = item.TR;
-                    SRsphere_tree::align_icp(ST, stree, height, TR);
-                    double emd = SRsphere_tree::compute_pseudo_emd(ST, stree, height, TR);
-                    semi_result.insert({(*it)->get_id(), emd});
+                    // @TODO =================================================================== NO ALIGN
+                    //SRsphere_tree::align_icp(ST, stree, height, TR);  
+                    //double metric = SRsphere_tree::compute_pseudo_emd_mult(ST, stree, height, TR);
+                    //double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height, TR);
+                    // ===================================================================================
+                    double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height);
+                    semi_result.insert({(*it)->get_id(), metric});
                 }
                 if(semi_result.size() >= 5) {
                     auto end = semi_result.begin();

@@ -32,6 +32,9 @@ namespace AF {
     vec3d get_pcl_vec3d(const pclPT &p);
 
     bool pcl_point_same(const pclPT &a, const pclPT &b);
+
+    // Given two point clouds, find rigid transformation to best align them.
+    
 }
 
 #endif

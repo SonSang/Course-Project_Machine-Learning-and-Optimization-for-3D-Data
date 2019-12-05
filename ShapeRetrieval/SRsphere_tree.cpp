@@ -1055,6 +1055,23 @@ namespace AF {
 		}
 		return AF::SRsphere_tree::compute_pseudo_emd(a, bcopy, level);
 	}
+	double SRsphere_tree::compute_pseudo_emd_mult(const SRsphere_tree &a, const SRsphere_tree &b, int level) {
+		double emd_a, emd_b;
+		compute_pseudo_emd_spec(a, b, level, emd_a, emd_b);
+		return emd_a * emd_b;
+	}
+	double SRsphere_tree::compute_pseudo_emd_mult(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR) {
+		if(level > 6 || level < 1) 
+			throw(std::invalid_argument("Level must be lower than 7"));
+    
+		AF::SRsphere_tree bcopy = b;		
+		for(auto it = bcopy.tree.begin(); it != bcopy.tree.end(); it++) {
+			if(it->level > level) continue;
+			AF::SRsphere &S = it->S.get_geometry();
+			S.set_center(bTR.apply(S.get_center()));
+		}
+		return AF::SRsphere_tree::compute_pseudo_emd_mult(a, bcopy, level);
+	}
 	void SRsphere_tree::test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB) {
 		if(level < 0 || level > a.height || level > b.height)  
 			throw(std::invalid_argument("Invalid tree level for collision detection."));

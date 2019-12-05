@@ -741,9 +741,14 @@ int main(int argc, char** argv)
     import_model("./Assets/val/02691156/model_000081.obj");
     import_model("./Assets/val/02691156/model_000555.obj");
     import_model("./Assets/val/02691156/model_000587.obj");
-    import_model("./Assets/val/02691156/model_000597.obj");
-    import_model("./Assets/val/02691156/model_000632.obj");
-    import_model("./Assets/val/02691156/model_000922.obj");
+    
+    // import_model("./Assets/val/02773838/model_011318.obj");
+    // import_model("./Assets/val/02773838/model_011857.obj");
+    // import_model("./Assets/val/02773838/model_016754.obj");
+
+    // import_model("./Assets/val/02801938/model_000511.obj");
+    // import_model("./Assets/val/02801938/model_003120.obj");
+    // import_model("./Assets/val/02801938/model_006318.obj");
 
     import_model("./Assets/val/02691156/model_001063.obj");
     import_model("./Assets/val/02691156/model_001130.obj");
@@ -751,6 +756,20 @@ int main(int argc, char** argv)
     import_model("./Assets/val/02691156/model_001342.obj");
     import_model("./Assets/val/02691156/model_001350.obj");
     import_model("./Assets/val/02691156/model_001354.obj");
+
+    import_model("./Assets/val/02691156/model_001437.obj");
+    import_model("./Assets/val/02691156/model_001621.obj");
+    import_model("./Assets/val/02691156/model_001867.obj");
+    import_model("./Assets/val/02691156/model_001863.obj");
+    import_model("./Assets/val/02691156/model_002110.obj");
+    import_model("./Assets/val/02691156/model_002129.obj");
+
+    import_model("./Assets/val/02691156/model_002300.obj");
+    import_model("./Assets/val/02691156/model_002419.obj");
+    import_model("./Assets/val/02691156/model_002565.obj");
+    import_model("./Assets/val/02691156/model_002587.obj");
+    import_model("./Assets/val/02691156/model_002957.obj");
+    import_model("./Assets/val/02691156/model_003263.obj");
 
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
