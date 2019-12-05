@@ -142,7 +142,7 @@ namespace AF {
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level);
 		static double compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR);
 		// Test : return residual spheres...
-		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB);
+		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB);
 		
 		// Compute whole volume of spheres at certain level.
 		double compute_level_volume(int level) const;

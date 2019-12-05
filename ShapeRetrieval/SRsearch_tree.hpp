@@ -36,7 +36,7 @@ namespace AF {
         int height = 6;     
         int root = -1;
 
-        double err_threshold = 0.3; // Threshold for making branches in this search tree.
+        double err_threshold = 0.001; // Threshold for making branches in this search tree.
 
         // Align given [ stree ] with [ nodeID ] node and compute EMD.
         // Alignment starts from given transformation, and ends in alignment result.

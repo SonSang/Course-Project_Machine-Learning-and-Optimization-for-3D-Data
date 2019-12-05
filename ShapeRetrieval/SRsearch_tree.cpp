@@ -30,11 +30,15 @@ namespace AF {
 
         for(auto it = route_to_leaf.begin(); it != route_to_leaf.end(); it++) {
             int level = tree.at(*it).level;
-            double node_volume = tree.at(*it).ST.compute_level_volume(level);
+            double node_volume_a = tree.at(*it).ST.compute_level_volume(level);
+            double node_volume_b = stree.compute_level_volume(level);
             double emd_a, emd_b;
             SRsphere_tree::compute_pseudo_emd_spec(tree.at(*it).ST, stree, level, emd_a, emd_b);
-            double error_rate = (emd_a + emd_b) / (node_volume + emd_b);
-            if(error_rate > err_threshold) {
+
+            double errA = emd_a / node_volume_a, errB = emd_b / node_volume_b;
+            double det = errA * errB;
+            //double error_rate = (emd_a + emd_b) / (node_volume + emd_b);
+            if(det > err_threshold) {
                 // This is the NODE!
                 if(*it == root) 
                     // It rarely happens...?
@@ -77,7 +81,8 @@ namespace AF {
                 for(int i = plevel + 1; i <= stree.height; i++) {
                     node N;
                     N.ST = stree;
-                    N.child.push_back(tree.size() + 1);
+                    if(i < stree.height)
+                        N.child.push_back(tree.size() + 1);
                     if(i == plevel + 1)
                         N.parent = parent;
                     else
@@ -94,11 +99,16 @@ namespace AF {
             while(!mergeQ.empty()) {
                 int m = mergeQ.back(); mergeQ.pop_back();
                 int mlevel = tree.at(m).level;
-                std::vector<SRsphere> spheres = tree.at(m).ST.get_sphere_set(mlevel).set;
-                std::vector<SRsphere> spheresB = stree.get_sphere_set(mlevel).set;
+                auto spheres = tree.at(m).ST.get_sphere_set(mlevel).set;
+                auto spheresB = stree.get_sphere_set(mlevel).set;
                 spheres.insert(spheres.end(), spheresB.begin(), spheresB.end());
-                
-                tree.at(m).ST.build(spheres);
+
+                std::vector<SRsphere> buildS;
+                buildS.reserve(spheres.size());
+                for(auto it = spheres.begin(); it != spheres.end(); it++) {
+                    buildS.push_back(it->get_geometry());
+                }                
+                tree.at(m).ST.build(buildS);
                 if(m == parent && nchild != -1) 
                     tree.at(m).child.push_back(nchild);
 

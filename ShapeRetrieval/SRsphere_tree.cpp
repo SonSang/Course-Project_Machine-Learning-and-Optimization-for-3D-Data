@@ -754,8 +754,10 @@ namespace AF {
 		get_level_set(level, first, last);
 		SRsphere_set ret;
 		ret.set.reserve(last - first);
-		for(int i = first; i < last; i++) 
-			ret.set.push_back(tree[i].S.get_geometry_c());
+		for(int i = first; i < last; i++) {
+			property_render_geometry<SRsphere> ns = tree[i].S;
+			ret.set.push_back(ns);
+		}			
 		return ret;
 	}
 
@@ -1053,7 +1055,7 @@ namespace AF {
 		}
 		return AF::SRsphere_tree::compute_pseudo_emd(a, bcopy, level);
 	}
-	void SRsphere_tree::test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, std::vector<SRsphere> &subA, std::vector<SRsphere> &subB) {
+	void SRsphere_tree::test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB) {
 		if(level < 0 || level > a.height || level > b.height)  
 			throw(std::invalid_argument("Invalid tree level for collision detection."));
 
@@ -1101,15 +1103,21 @@ namespace AF {
 			}
 		}
 
-		subA.clear();
-		subB.clear();
+		subA.set.clear();
+		subB.set.clear();
 		for(auto it = level_set_a.begin(); it != level_set_a.end(); it++) {
-			if(it->second.get_radius() > 0)
-				subA.push_back(it->second);
+			if(it->second.get_radius() > 0) {
+				property_render_geometry<SRsphere> ns = a.tree.at(0).S;
+				ns.set_geometry(it->second);
+				subA.set.push_back(ns);
+			}
 		}
 		for(auto it = level_set_b.begin(); it != level_set_b.end(); it++) {
-			if(it->second.get_radius() > 0)
-				subB.push_back(it->second);
+			if(it->second.get_radius() > 0) {
+				property_render_geometry<SRsphere> ns = b.tree.at(0).S;
+				ns.set_geometry(it->second);
+				subB.set.push_back(ns);
+			}
 		}
 	}
 
@@ -1118,9 +1126,9 @@ namespace AF {
 			throw(std::invalid_argument("Level must be lower than 7"));
 		
 		double ret = 0;
-		std::vector<SRsphere> spheres = get_sphere_set(level).set;
+		auto spheres = get_sphere_set(level).set;
 		for(auto it = spheres.begin(); it != spheres.end(); it++) {
-			double radius = it->get_radius();
+			double radius = it->get_geometry().get_radius();
 			ret += radius * radius * radius;
 		}
 		return ret * (4.0 / 3.0) * pi;

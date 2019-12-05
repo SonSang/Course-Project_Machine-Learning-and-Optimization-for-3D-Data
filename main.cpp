@@ -48,6 +48,9 @@ std::vector<bool> models_select;
 
 AF::SRsearch_tree   DB;     // Search DB
 std::shared_ptr<AF::object> search_model;
+std::shared_ptr<AF::object> residue_spheres;
+
+AF::shader globalShader;
 
 void init_camera() {
     MC.set_position(0, 0, 1);
@@ -163,7 +166,8 @@ void import_model(const std::string &path) {
     tptr->set_valid(false);
 
     // ALWAYS SHADER FIRST!
-    ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
+    //ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");  //  Always have to set shader before BO.
+    ptr->set_shader(globalShader);
     ptr->get_geometry().scale_norm();
     tptr->set_shader(ptr->get_shader_c());
     //ptr->get_geometry().scale_norm();
@@ -254,7 +258,10 @@ void update_models_select() {
 // ===================================================================== emd ====================================
 static AF::SRsphere_tree::align_var av(0, 0, 0, 0, 0, 0);
 static AF::transform atr;
-void testEMD1(int level) {
+
+static int residue_rmode = 0;
+
+void findResidue(int level) {
     if(level > 6 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
         return;
@@ -277,82 +284,81 @@ void testEMD1(int level) {
         std::cout<<"Please select two models for EMD."<<std::endl;
         return;
     }
-    std::vector<AF::SRsphere> subA, subB;
-    AF::SRsphere_tree copy = get_model_sphere_tree(bid);
-    AF::transform copyTR = AF::SRsphere_tree::alignTR(av);
-    
-    for(auto it = copy.tree.begin(); it != copy.tree.end(); it++) {
-        AF::SRsphere &S = it->S.get_geometry();
-        S.set_center(copyTR.apply(S.get_center()));
-        //S.set_radius(S.get_radius() * av.scale);
-    }
+    AF::SRsphere_set subA, subB;
     AF::SRsphere_tree::test_pseudo_emd(
         get_model_sphere_tree(aid),
-        copy,
+        get_model_sphere_tree(bid),
         level,
         subA, subB
     );
-    double r = 0;
-    for(auto it = subA.begin(); it != subA.end(); it++) {
-        double t = it->get_radius();
-        r += t * t * t;
-    }
-    for(auto it = subB.begin(); it != subB.end(); it++) {
-        double t = it->get_radius();
-        r += t * t * t;
-    }
-    r *= (4.0 / 3.0) * AF::pi;
-    std::cout<<"EMD : "<<r<<std::endl;
 
+    AF::shader localShaderA, localShaderB;
+    localShaderA.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    localShaderB.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+
+    static bool init = false;
     // Draw [ sub ].
-    // std::shared_ptr<AF::object>
-	// 	cobj = std::make_shared<AF::object>();
+    if(!init) {
+        residue_spheres = std::make_shared<AF::object>("residueSpheres");
+        SM.get_object_manager().add_object(residue_spheres);
+        init = true;
+    }
+    else {
+        auto properties = residue_spheres->get_property<AF::SRsphere_set>();
+        for(auto it = properties.begin(); it != properties.end(); it++)
+            (*it)->destroy_render();
+        residue_spheres->delete_derived_property<AF::property_render>();
+    }
+    std::shared_ptr<AF::SRsphere_set>
+        aptr = std::make_shared<AF::SRsphere_set>(subA),
+        bptr = std::make_shared<AF::SRsphere_set>(subB);
 
-    // SM.get_object_manager().add_object(cobj);
-
-    // AF::material material;
-    // material.set_emmision(AF::color(0, 0, 0));
-    // material.set_ambient(AF::color(0.2, 0.2, 0.2));
-    // material.set_diffuse(AF::color(0.9, 0.4, 0.4));
-    // material.set_specular(AF::color(1.0, 1.0, 1.0));
-    // material.set_shininess(100);    
-
-    // AF::material materialB;
-    // materialB.set_emmision(AF::color(0, 0, 0));
-    // materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
-    // materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
-    // materialB.set_specular(AF::color(1.0, 1.0, 1.0));
-    // materialB.set_shininess(100);    
+    aptr->set_shader(localShaderA);
+    bptr->set_shader(localShaderB);
     
-    // AF::light_point light;
-    // light.set_position(AF::vec3d(0, 0, 0));
-    // light.set_ambient(AF::color(0.2, 0.2, 0.2));
-    // light.set_diffuse(AF::color(1.0, 1.0, 1.0));
-    // light.set_specular(AF::color(0.7, 0.7, 0.7));
-    
-    // for(auto it = subA.begin(); it != subA.end(); it++) {
-    //     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
-    //         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    //     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
-    //     AF::mesh3 m = it->get_mesh2();
-    //     ptr->get_config().M = ptr->get_config().PHONG;
-    //     ptr->build_BO_mesh3(m);
-    //     ptr->shader_set_light_point(light);
-    //     ptr->shader_set_material(material);
-    //     SM.add_object_property(cobj->get_id(), ptr);
-    // }
+    AF::material materialA;
+    materialA.set_emmision(AF::color(0, 0, 0));
+    materialA.set_ambient(AF::color(0.2, 0.2, 0.2));
+    materialA.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    materialA.set_specular(AF::color(1.0, 1.0, 1.0));
+    materialA.set_shininess(100);    
 
-    // for(auto it = subB.begin(); it != subB.end(); it++) {
-    //     std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
-    //         ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
-    //     ptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
-    //     AF::mesh3 m = it->get_mesh2();
-    //     ptr->get_config().M = ptr->get_config().PHONG;
-    //     ptr->build_BO_mesh3(m);
-    //     ptr->shader_set_light_point(light);
-    //     ptr->shader_set_material(materialB);
-    //     SM.add_object_property(cobj->get_id(), ptr);
-    // }
+    AF::material materialB;
+    materialB.set_emmision(AF::color(0, 0, 0));
+    materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
+    materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
+    materialB.set_specular(AF::color(1.0, 1.0, 1.0));
+    materialB.set_shininess(100);  
+
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+
+    for(auto it = aptr->set.begin(); it != aptr->set.end(); it++) {
+        it->set_shader(localShaderA);
+        it->shader_set_material(materialA);
+        it->shader_set_light_point(light);
+        it->set_valid(true);
+        it->get_config().M = (residue_rmode == 0) ? it->get_config().WIREFRAME : it->get_config().PHONG;
+    }
+
+    for(auto it = bptr->set.begin(); it != bptr->set.end(); it++) {
+        it->set_shader(localShaderB);
+        it->shader_set_material(materialB);
+        it->shader_set_light_point(light);
+        it->set_valid(true);
+        it->get_config().M = (residue_rmode == 0) ? it->get_config().WIREFRAME : it->get_config().PHONG;
+    }
+
+    aptr->build_render();
+    bptr->build_render();
+    aptr->set_valid(true);
+    bptr->set_valid(true);
+
+    SM.add_object_property(residue_spheres->get_id(), aptr);
+    SM.add_object_property(residue_spheres->get_id(), bptr);
 }
 
 void testEMD2(int level) {
@@ -465,7 +471,7 @@ void show_search_tree_node() {
     }
     std::shared_ptr<AF::SRsphere_tree>
         tptr = std::make_shared<AF::SRsphere_tree>(DB.tree.at(search_tree_node).ST);
-    tptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    //tptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
     tptr->build_render();
     int level = DB.tree.at(search_tree_node).level;
     for(int i = 1; i < level; i++)
@@ -500,6 +506,13 @@ void search_tree_ui() {
             search_tree_rmode = 0;
         if(search_tree_node != -1)
             show_search_tree_node();
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Toggle rendering")) {
+        auto properties = search_model->get_derived_property<AF::property_render>();
+        for(auto it = properties.begin(); it != properties.end(); it++) {
+            (*it)->set_valid(!(*it)->is_valid());
+        }
     }
     search_tree_ui_rec(DB.root);
 }
@@ -598,8 +611,20 @@ void SRmenu_EMD() {
         }
         static int level = 3;
         ImGui::InputInt("level", &level);
-        if(ImGui::Button("Test 1 : Simple EMD")) {
-            testEMD1(level);
+        if(ImGui::Button("Find residual spheres")) {
+            findResidue(level);
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Render mode")) {
+            residue_rmode = !residue_rmode;
+            findResidue(level);
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Toggle")) {
+            auto properties = residue_spheres->get_property<AF::SRsphere_set>();
+            for(auto it = properties.begin(); it != properties.end(); it++) {
+                (*it)->set_valid(!(*it)->is_valid());
+            }
         }
         if(ImGui::Button("Test 2 : Align EMD")) {
             testEMD2(level);
@@ -689,6 +714,7 @@ int main(int argc, char** argv)
     }
 
     init_camera();
+    globalShader.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -714,6 +740,17 @@ int main(int argc, char** argv)
     /////// ========================================== For utility.
     import_model("./Assets/val/02691156/model_000081.obj");
     import_model("./Assets/val/02691156/model_000555.obj");
+    import_model("./Assets/val/02691156/model_000587.obj");
+    import_model("./Assets/val/02691156/model_000597.obj");
+    import_model("./Assets/val/02691156/model_000632.obj");
+    import_model("./Assets/val/02691156/model_000922.obj");
+
+    import_model("./Assets/val/02691156/model_001063.obj");
+    import_model("./Assets/val/02691156/model_001130.obj");
+    import_model("./Assets/val/02691156/model_001249.obj");
+    import_model("./Assets/val/02691156/model_001342.obj");
+    import_model("./Assets/val/02691156/model_001350.obj");
+    import_model("./Assets/val/02691156/model_001354.obj");
 
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
