@@ -33,7 +33,7 @@ namespace AF {
 
         std::map<int, int> model_node_map;      // For object of id [ first ], match leaf node of id [ second ].
         std::vector<node> tree;
-        int height = 6;     
+        int height = 8;     
         int root = -1;
 
         double err_threshold = 0.001; // Threshold for making branches in this search tree.

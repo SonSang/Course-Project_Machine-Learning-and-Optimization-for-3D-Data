@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <math.h>
+#include <fstream>
 
 namespace AF {
 	SRpoint_cloud kdpc;
@@ -25,6 +26,94 @@ namespace AF {
 		for(auto it = pc.begin(); it != pc.end(); it++)
 			ret.pc[i++] = *it;
 		return ret;
+	}
+
+	void SRsphere_tree::load(const std::string &path) {
+		std::ifstream ifs;
+		ifs.open(path, std::ios::binary);
+
+		char str[100];
+		ifs.getline(str, 100);
+		this->root = atoi(str);
+		ifs.getline(str, 100);
+		this->height = atoi(str);
+
+		tree.clear();
+		while(!ifs.eof()) {	
+			ifs.getline(str, 100);
+			if(str[0] == 'N') {
+				node N;
+				ifs.getline(str, 100);	// C
+				while(true) {
+					ifs.getline(str, 100);
+					if(str[0] == 'P')
+						break;
+					int c = atoi(str);
+					N.child.push_back(c);
+				}
+				ifs.getline(str, 100);
+				N.parent = atoi(str);
+				ifs.getline(str, 100);
+				N.level = atoi(str);
+
+				vec3d cen;
+				double rad;
+				ifs.getline(str, 100);
+				cen[0] = atof(str);
+				ifs.getline(str, 100);
+				cen[1] = atof(str);
+				ifs.getline(str, 100);
+				cen[2] = atof(str);
+				ifs.getline(str, 100);
+				rad = atof(str);
+				SRsphere S;
+				S.set_center(cen);
+				S.set_radius(rad);
+				N.S.set_geometry(S);
+				tree.push_back(N);
+			}
+		}
+		ifs.close();
+		std::cout<<"Load complete : "<<path<<std::endl;
+	}
+	void SRsphere_tree::save(const std::string &path) {
+		std::ofstream ofs;
+		ofs.open(path, std::ios::binary);
+		// ofs.write(reinterpret_cast<const char *>(&root), sizeof(int));
+		// ofs.write(reinterpret_cast<const char *>(&height), sizeof(int));
+		ofs << root <<std::endl;
+		ofs << height <<std::endl;
+		for(auto it = tree.begin(); it != tree.end(); it++) {
+			// ofs.write("N", sizeof(char));
+			// ofs.write("C", sizeof(char));
+			ofs<<"N"<<std::endl;
+			ofs<<"C"<<std::endl;
+			for(auto c = it->child.begin(); c != it->child.end(); c++) {
+				//ofs.write(reinterpret_cast<const char *>(&(*c)), sizeof(int));
+				ofs<<*c<<std::endl;
+			}
+			// ofs.write("P", sizeof(char));
+			// ofs.write(reinterpret_cast<const char *>(&it->parent), sizeof(int));
+			// ofs.write(reinterpret_cast<const char *>(&it->level), sizeof(int));
+			// float cen[3];
+			// cen[0] = (float)it->S.get_geometry_c().get_center()[0];
+			// cen[1] = (float)it->S.get_geometry_c().get_center()[1];
+			// cen[2] = (float)it->S.get_geometry_c().get_center()[2];
+			// ofs.write(reinterpret_cast<const char *>(&cen[0]), sizeof(float));
+			// ofs.write(reinterpret_cast<const char *>(&cen[1]), sizeof(float));
+			// ofs.write(reinterpret_cast<const char *>(&cen[2]), sizeof(float));
+			// double rad = it->S.get_geometry_c().get_radius();
+			// ofs.write(reinterpret_cast<const char *>(&rad), sizeof(float));
+			ofs<<"P"<<std::endl;
+			ofs<<it->parent<<std::endl;
+			ofs<<it->level<<std::endl;
+			ofs<<it->S.get_geometry_c().get_center()[0]<<std::endl;
+			ofs<<it->S.get_geometry_c().get_center()[1]<<std::endl;
+			ofs<<it->S.get_geometry_c().get_center()[2]<<std::endl;
+			ofs<<it->S.get_geometry_c().get_radius()<<std::endl;
+		}
+		ofs.close();
+		std::cout<<"Save complete : "<<path<<std::endl;
 	}
 
     void SRsphere_tree::build(const std::set<vec3d> &point_cloud, int multiplier) {
@@ -217,9 +306,9 @@ namespace AF {
 		cur_node_size /= multiplier;	// Since we do not include original model data in this tree,
 		height--;						// we have to exclude the final level from this tree.
 
-		if(cur_node_size > 1024) {		// # of leaf nodes should not exceed 1024.
-			cur_node_size = 1024;
-			height = 6;
+		if(cur_node_size > 1024 * 16) {		// # of leaf nodes should not exceed 1024 * 16.
+			cur_node_size = 1024 * 16;
+			height = 6 + 2;
 		}
 
 		int cur_level = height + 1;		// Original model data. This will be culled out in the last stage of this algorithm.
@@ -431,7 +520,7 @@ namespace AF {
 		}	
 	}
 	// Regularize triangles in the mesh [ M ] and wrap them up with sphere cloud [ sc ].
-	void regularize_mesh3(const mesh3 &M, std::vector<SRsphere> &sc, double absrad = 0.1) {
+	void regularize_mesh3(const mesh3 &M, std::vector<SRsphere> &sc, double absrad = 1e-2) {
 		double avgradius = 0;
 		std::vector<SRsphere> presc;
 		int fnum = M.get_faces_c().size();
@@ -576,25 +665,32 @@ namespace AF {
 			resultSet.init(ret_index, ret_dist);
 			kdtree.findNeighbors(resultSet, cenvd, nanoflann::SearchParams(10));
 			
+			double SV[3];
+			vec3d approxv[3];
 			// std::vector<int> nearest;
 			// std::vector<float> distance;
 			// octree->nearestKSearch(cenp, k, nearest, distance);
 			//octree->approxNearestSearch(get_pcl_point(cenv), bestfit.first, dist);
 			for(int i = 0; i < k; i++) {
-				if(ret_index[i] >= kdpc.pc.size())
+				if(ret_index[i] >= kdpc.pc.size() || ret_index[i] == id)
 					continue;
-				vec3d approxv = kdpc.pc.at(ret_index[i]);
+				approxv[i] = kdpc.pc.at(ret_index[i]);
 				// pclPT approx_nearest_cen = octree->getInputCloud()->at(nearest.at(i));
 				// if(pcl_point_same(cenp, approx_nearest_cen))
 				// 	continue;
-				if(approxv == cenv)
-					continue;
+				// if(approxv[i] == cenv)
+				// 	continue;
 				//int find = sphere_map.find(approxv)->second;
-				double SV = compute_surplus_volume(id, ret_index[i]);
-				if(SV < bestfit.second) {
+				SV[k] = compute_surplus_volume(id, ret_index[i]);
+				if(SV[k] < bestfit.second) {
 					bestfit.first = guess = ret_index[i];
-					bestfit.second = SV;
+					bestfit.second = SV[k];
 				}
+			}
+
+			if(bestfit.first == -1) {
+				std::cerr<<"Error : "<<ret_index[0]<<", "<<ret_index[1]<<", "<<ret_index[2]<<std::endl;
+				std::cerr<<SV[0]<<", "<<SV[1]<<", "<<SV[2]<<std::endl;
 			}
 		}
 		return bestfit.first;
@@ -813,7 +909,7 @@ namespace AF {
 		return ret;
 	}
 	void SRsphere_tree::get_level_set(int level, int &first, int &last) const {
-		if(level < 1 || level > 6) {
+		if(level < 1 || level > 8) {
 			throw(std::invalid_argument("Invalid level."));
 		}
 		first = 0;
@@ -849,7 +945,7 @@ namespace AF {
 	}
 	void SRsphere_tree::render_nodes_child() {
 		int cur_level = tree.at(render_nodes.at(0)).level;
-		if(cur_level >= 6)
+		if(cur_level >= height)
 			return;
 
 		render_nodes.clear();
@@ -1044,7 +1140,7 @@ namespace AF {
 		return EMD;
 	}
 	double SRsphere_tree::compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR) {
-		if(level > 6 || level < 1) 
+		if(level > 8 || level < 1) 
 			throw(std::invalid_argument("Level must be lower than 7"));
     
 		AF::SRsphere_tree bcopy = b;		
@@ -1061,7 +1157,7 @@ namespace AF {
 		return emd_a * emd_b;
 	}
 	double SRsphere_tree::compute_pseudo_emd_mult(const SRsphere_tree &a, const SRsphere_tree &b, int level, const transform &bTR) {
-		if(level > 6 || level < 1) 
+		if(level > 8 || level < 1) 
 			throw(std::invalid_argument("Level must be lower than 7"));
     
 		AF::SRsphere_tree bcopy = b;		
@@ -1139,7 +1235,7 @@ namespace AF {
 	}
 
 	double SRsphere_tree::compute_level_volume(int level) const {
-		if(level > 6 || level < 1) 
+		if(level > 8 || level < 1) 
 			throw(std::invalid_argument("Level must be lower than 7"));
 		
 		double ret = 0;

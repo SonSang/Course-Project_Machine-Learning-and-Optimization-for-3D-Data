@@ -33,6 +33,9 @@
 #include "Dependencies/imgui/examples/imgui_impl_sdl.h"
 #include "Dependencies/imgui/examples/imgui_impl_opengl3.h"
 
+#include <fstream>
+#include <experimental/filesystem>
+
 std::function<void()> loop;
 void main_loop() { loop(); }
 
@@ -170,7 +173,6 @@ void import_model(const std::string &path) {
     ptr->set_shader(globalShader);
     ptr->get_geometry().scale_norm();
     tptr->set_shader(ptr->get_shader_c());
-    //ptr->get_geometry().scale_norm();
 
     ptr->build_BO();
 
@@ -195,8 +197,21 @@ void import_model(const std::string &path) {
     SM.add_object_property(cobj->get_id(), tptr);
     models.push_back(cobj);
 
+    ptr->set_valid(false);
+
     // build sphere tree when import.
-    tptr->build(ptr->get_geometry_c());
+    std::string saveFile = path;
+    int size = saveFile.size();
+    saveFile.replace(saveFile.end() - 3, saveFile.end(), "str");
+    std::ifstream ifs(saveFile);
+
+    if(ifs.is_open()) {
+        ifs.close();
+        tptr->load(saveFile);
+    }
+    else {
+         tptr->build(ptr->get_geometry_c());
+    }    
 }
 
 void compute_normal(int id) {
@@ -262,7 +277,7 @@ static AF::transform atr;
 static int residue_rmode = 0;
 
 void findResidue(int level) {
-    if(level > 6 || level < 1) {
+    if(level > 8 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
         return;
     }
@@ -362,7 +377,7 @@ void findResidue(int level) {
 }
 
 void testEMD2(int level) {
-    if(level > 6 || level < 1) {
+    if(level > 8 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
         return;
     }
@@ -394,7 +409,7 @@ void testEMD2(int level) {
 }
 
 void testEMD3(int level) {
-     if(level > 6 || level < 1) {
+     if(level > 8 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
         return;
     }
@@ -738,38 +753,19 @@ int main(int argc, char** argv)
     ImGui_ImplOpenGL3_Init();
 
     /////// ========================================== For utility.
-    import_model("./Assets/val/02691156/model_000081.obj");
-    import_model("./Assets/val/02691156/model_000555.obj");
-    import_model("./Assets/val/02691156/model_000587.obj");
-    
-    // import_model("./Assets/val/02773838/model_011318.obj");
-    // import_model("./Assets/val/02773838/model_011857.obj");
-    // import_model("./Assets/val/02773838/model_016754.obj");
-
-    // import_model("./Assets/val/02801938/model_000511.obj");
-    // import_model("./Assets/val/02801938/model_003120.obj");
-    // import_model("./Assets/val/02801938/model_006318.obj");
-
-    import_model("./Assets/val/02691156/model_001063.obj");
-    import_model("./Assets/val/02691156/model_001130.obj");
-    import_model("./Assets/val/02691156/model_001249.obj");
-    import_model("./Assets/val/02691156/model_001342.obj");
-    import_model("./Assets/val/02691156/model_001350.obj");
-    import_model("./Assets/val/02691156/model_001354.obj");
-
-    import_model("./Assets/val/02691156/model_001437.obj");
-    import_model("./Assets/val/02691156/model_001621.obj");
-    import_model("./Assets/val/02691156/model_001867.obj");
-    import_model("./Assets/val/02691156/model_001863.obj");
-    import_model("./Assets/val/02691156/model_002110.obj");
-    import_model("./Assets/val/02691156/model_002129.obj");
-
-    import_model("./Assets/val/02691156/model_002300.obj");
-    import_model("./Assets/val/02691156/model_002419.obj");
-    import_model("./Assets/val/02691156/model_002565.obj");
-    import_model("./Assets/val/02691156/model_002587.obj");
-    import_model("./Assets/val/02691156/model_002957.obj");
-    import_model("./Assets/val/02691156/model_003263.obj");
+    namespace fs = std::experimental::filesystem;
+    fs::path valPath = fs::current_path();
+    valPath /= "Assets/val/02691156/";
+    int i = 0;
+    for(auto file : fs::directory_iterator(valPath)) {
+        std::string name = file.path();
+        if(*(name.end() - 3) == 's')
+            continue;
+        import_model(file.path());   
+        i++;
+        if(i == 10)
+            break;
+    }
 
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
@@ -840,3 +836,46 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
+// int main(int argc, char **argv) {
+//     // Code to make sphere trees for entire data base.
+//     namespace fs = std::experimental::filesystem;
+//     fs::path valPath = fs::current_path();
+//     valPath /= "Assets/val/";
+//     for(auto it : fs::directory_iterator(valPath)) {
+//         //std::cout<<it<<std::endl;
+//         int i = 0;
+//         std::cout<<"Start "<<it.path()<<std::endl;
+//         for(auto file : fs::directory_iterator(it)) {
+//             if(i == 10)
+//                 break;
+//             std::string saveFile = file.path();
+//             if(*(saveFile.end() - 3) == 's')
+//                 continue;
+
+//             int size = saveFile.size();
+//             saveFile.replace(saveFile.end() - 3, saveFile.end(), "str");
+
+//             std::ifstream test(saveFile);
+//             if(test.is_open()) {
+//                 std::cout<<saveFile<<" already exists."<<std::endl;
+//                 test.close();
+//                 i++;
+//                 continue;
+//             }
+//             test.close();
+
+//             //std::cout<<file<<std::endl;
+//             import_model(file.path());
+//             auto &stree = get_model_sphere_tree(models.back()->get_id());
+//             stree.save(saveFile);
+//             stree.tree.clear();
+//             get_model_mesh(models.back()->get_id()) = AF::property_render_geometry<AF::rmesh3>();
+//             // SM.get_object_manager().del_object(models.back());
+//             // models.pop_back();
+//             i++;
+//         }
+//     }
+
+//     return 0;
+// }

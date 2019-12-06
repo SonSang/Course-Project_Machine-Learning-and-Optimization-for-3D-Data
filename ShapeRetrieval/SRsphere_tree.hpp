@@ -69,6 +69,9 @@ namespace AF {
 		std::vector<node> tree;
 		int root;
 		int height;
+
+		void load(const std::string &path);
+		void save(const std::string &path);
 		
 		// Build this tree from input [ point_cloud ].
 		// @multiplier : Amount of nodes that increase when level goes deeper.
