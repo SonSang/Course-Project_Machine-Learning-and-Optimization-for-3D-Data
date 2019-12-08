@@ -560,8 +560,8 @@ void SRmenu() {
     ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
     // if(ImGui::CollapsingHeader("Model"))
     //     SRmenu_model();
-    // if(ImGui::CollapsingHeader("Search"))
-    //     SRmenu_search();
+    if(ImGui::CollapsingHeader("Search"))
+        SRmenu_search();
     // if(ImGui::CollapsingHeader("EMD"))
     //    SRmenu_EMD();
     SRmenu_final();
@@ -713,7 +713,7 @@ void SRmenu_search() {
 
 // ===================================================================== FINAL UI ====================================
 std::shared_ptr<AF::object> searchModel;
-std::array<std::string, 5> searchResult;
+std::vector<std::string> searchResult;
 bool selectModelInit = true;
 
 void selectSearchModel(const std::string &path) {
@@ -779,6 +779,78 @@ void doSearch() {
     AF::timer::end_print();
 }
 
+void reorderCD() {
+    auto &stree = *(*(searchModel->get_property<AF::SRsphere_tree>().begin()));
+
+    struct resultItem {
+        std::string path;
+        double error;
+    };
+    struct resultItemComp {
+        bool operator() (const resultItem &lhs, const resultItem& rhs) const {
+            if(lhs.error == rhs.error)
+                return true;
+            else return lhs.error < rhs.error;
+        }
+    };
+    using resultQ = std::set<resultItem, resultItemComp>;
+    
+    resultQ reorder;
+    for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
+        int nodeID = DB.model_node_map.find(*it)->second;
+        for(auto it2 = DB.tree[nodeID].models.begin(); it2 != DB.tree[nodeID].models.end(); it2++) {
+            if(it2->path == *it) {
+                double cd = AF::SRsphere_tree::computeCD(it2->ST, stree, DB.height);
+                reorder.insert({*it, cd});
+                break;
+            }
+        }
+    }
+
+    std::vector<std::string> nresult;
+    for(auto it = reorder.begin(); it != reorder.end(); it++) {
+        nresult.push_back(it->path);
+    }
+
+    searchResult = nresult;
+}
+
+void reorderEMD() {
+    auto &stree = *(*(searchModel->get_property<AF::SRsphere_tree>().begin()));
+
+    struct resultItem {
+        std::string path;
+        double error;
+    };
+    struct resultItemComp {
+        bool operator() (const resultItem &lhs, const resultItem& rhs) const {
+            if(lhs.error == rhs.error)
+                return true;
+            else return lhs.error < rhs.error;
+        }
+    };
+    using resultQ = std::set<resultItem, resultItemComp>;
+    
+    resultQ reorder;
+    for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
+        int nodeID = DB.model_node_map.find(*it)->second;
+        for(auto it2 = DB.tree[nodeID].models.begin(); it2 != DB.tree[nodeID].models.end(); it2++) {
+            if(it2->path == *it) {
+                double emd = AF::SRsphere_tree::computeEMD(it2->ST, stree, DB.height);
+                reorder.insert({*it, emd});
+                break;
+            }
+        }
+    }
+
+    std::vector<std::string> nresult;
+    for(auto it = reorder.begin(); it != reorder.end(); it++) {
+        nresult.push_back(it->path);
+    }
+
+    searchResult = nresult;
+}
+
 void SRmenu_final() {
     if(ImGui::TreeNode("Select input model")) {
         namespace fs = std::experimental::filesystem;
@@ -800,10 +872,19 @@ void SRmenu_final() {
         }
         ImGui::TreePop();
     }
-    if(ImGui::TreeNode("Search")) {
+    if(ImGui::TreeNode("Search model")) {
         if(!selectModelInit) {
-            if(ImGui::Button("Search")) 
-            doSearch();
+            if(ImGui::Button("Do Search")) 
+                doSearch();
+            ImGui::SameLine();
+            if(ImGui::Button("Reorder : Chamfer's distance")) {
+                reorderCD();
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Reorder : Earth Mover's distance")) {
+                reorderEMD();
+            }
+            ImGui::Text("Result : ");
             for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
                 if(ImGui::Button(it->c_str())) 
                    selectSearchModel(*it);

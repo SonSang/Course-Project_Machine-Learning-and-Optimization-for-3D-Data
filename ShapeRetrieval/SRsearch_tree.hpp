@@ -50,8 +50,8 @@ namespace AF {
         void add(std::shared_ptr<object> &NM);                           // Add given model to this search tree. The model should have [ mesh3 ] property.
                                                                             // Before add, the model must have built sphere tree!
         void add(const std::string &path, SRsphere_tree &ST);
-        model5 search(std::shared_ptr<object> &query);                      // Find best matching model in the tree to the given query model.
-        model5 search(const SRsphere_tree &stree);                          // Find best matching model in the tree to the given query model.
+        std::vector<std::string> search(std::shared_ptr<object> &query);                      // Find best matching model in the tree to the given query model.
+        std::vector<std::string> search(const SRsphere_tree &stree);                          // Find best matching model in the tree to the given query model.
 
         void load(const std::string &path);
         void save(const std::string &path);

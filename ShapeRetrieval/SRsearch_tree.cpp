@@ -7,7 +7,7 @@ namespace AF {
         return *(*(optr->get_property<AF::SRsphere_tree>().begin()));
     }
     int SRsearch_tree::find_best_fit(const SRsphere_tree &stree, transform &TR) {
-        model5 fits = search(stree);
+        std::vector<std::string> fits = search(stree);
         int leaf_node_id = model_node_map.find(fits[0])->second;
 
         // @TODO =================================================================== NO ALIGN
@@ -124,7 +124,7 @@ namespace AF {
             return ret;
         }
     }
-    SRsearch_tree::model5 SRsearch_tree::search(std::shared_ptr<object> &query) {
+    std::vector<std::string> SRsearch_tree::search(std::shared_ptr<object> &query) {
         const auto &mesh = (*(*query->get_property<property_render_geometry<rmesh3>>().begin())).get_geometry_c();
         SRsphere_tree qtree;
         qtree.build(mesh);
@@ -190,8 +190,8 @@ namespace AF {
 
         return stree.tree.at(stree.root).volume - inVolume;
     }
-    SRsearch_tree::model5 SRsearch_tree::search(const SRsphere_tree &stree) {
-        model5 result = { "", "", "", "", "" };
+    std::vector<std::string> SRsearch_tree::search(const SRsphere_tree &stree) {
+        std::vector<std::string> result;
         int rnum = 0;
         if(tree.empty())
             return result;
@@ -261,15 +261,28 @@ namespace AF {
                     //double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height, TR);
                     // ===================================================================================
                     double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height);
-                    if(metric < error_upper_bound) 
-                        error_upper_bound = metric;
+                    // if(metric < error_upper_bound) 
+                    //     error_upper_bound = metric;
 
                     // Choice 1 : DEFAULT
-                    //results.insert({it->path, metric});
+                    results.insert({it->path, metric});
 
                     // Choice 2 : CHAMFER's DISTANCE
-                    metric = SRsphere_tree::computeCD(ST, stree, height);
-                    results.insert({it->path, metric});
+                    // metric = SRsphere_tree::computeCD(ST, stree, height);
+                    // results.insert({it->path, metric});
+
+                    // Choice 3 : EMD
+                    // metric = SRsphere_tree::computeEMD(ST, stree, height);
+                    // results.insert({it->path, metric});
+
+                    if(results.size() < 5) {
+                        error_upper_bound = results.cbegin()->error;
+                    }
+                    else {
+                        auto ptr = results.begin();
+                        std::advance(ptr, 5);
+                        error_upper_bound = ptr->error;
+                    }
                 }
             }
             else {
@@ -285,9 +298,7 @@ namespace AF {
 
         int i = 0;
         for(auto it = results.begin(); it != results.end(); it++) {
-            result[i++] = it->path;
-            if(i == 5)
-                break;
+            result.push_back(it->path);
         }
         return result;
     }

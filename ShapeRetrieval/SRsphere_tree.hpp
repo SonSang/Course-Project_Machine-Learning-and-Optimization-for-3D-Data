@@ -174,6 +174,7 @@ namespace AF {
 
 		// Compute Chamfer's distance between two trees.
 		static double computeCD(const SRsphere_tree &a, const SRsphere_tree &b, int level);
+		static double computeEMD(const SRsphere_tree &a, const SRsphere_tree &b, int level);
 	};
 }
 
