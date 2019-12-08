@@ -1,7 +1,7 @@
 # ================================================= GCC
 CC = g++ -std=c++17
 DEBUG = -g
-OPTIM = -O3 -march=native -ffast-math
+OPTIM = -O2 -march=native -ffast-math
 TARGET = ./Output/GCC/main.exe
 TARGET_REL = ./Output/GCC/mainr.exe
 
@@ -134,9 +134,11 @@ DIR_SR_REL = ./ShapeRetrieval/release
 ODIR_SR_REL = $(DIR_SR_REL)/obj
 LDIR_SR_REL = $(DIR_SR_REL)/lib
 OBJ_SR_REL = 	$(ODIR_SR_REL)/SRsphere.o		\
-			$(ODIR_SR_REL)/SRsphere_tree.o	\
+			$(ODIR_SR_REL)/SRsphere_tree.o		\
 			$(ODIR_SR_REL)/SRpcl_interface.o	\
-			$(ODIR_SR_REL)/SRcgal_interface.o
+			$(ODIR_SR_REL)/SRcgal_interface.o	\
+			$(ODIR_SR)/SRsphere_set.o 			\
+			$(ODIR_SR)/SRsearch_tree.o
 LIB_SR_REL = $(LDIR_SR_REL)/libsr.a
 LD_SR_REL = -L$(LDIR_SR_REL)/ -lsr
 
@@ -160,14 +162,15 @@ LIB = $(LIB_MATH) $(LIB_GEOM) $(LIB_REND) $(LIB_SR) $(LIB_IMGUI)
 LD = $(LIB_SR) $(LIB_REND) $(LIB_GEOM) $(LIB_MATH) $(LIB_IMGUI) $(LIB_PCL) $(LIB_CGAL) $(LIB_DLIB) -lGL -lSDL2 -lstdc++fs
 
 LIB_REL = $(LIB_MATH_REL) $(LIB_GEOM_REL) $(LIB_REND_REL) $(LIB_SR_REL) $(LIB_IMGUI_REL)  
-LD_REL = $(LIB_SR_REL) $(LIB_REND_REL) $(LIB_GEOM_REL) $(LIB_MATH_REL) $(LIB_IMGUI_REL) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 
+LD_REL = $(LIB_SR_REL) $(LIB_REND_REL) $(LIB_GEOM_REL) $(LIB_MATH_REL) $(LIB_IMGUI_REL) $(LIB_PCL) $(LIB_CGAL) -lGL -lSDL2 -lstdc++fs
 
 gcc : $(LIB)
 	#$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
 	$(CC) main.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(DEBUG) -o $(TARGET)
 
 gcc_rel : $(LIB_REL)
-	$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(OPTIM) -o $(TARGET_REL) 
+	#$(CC) main.cpp ./Dependencies/dlib-19.18/dlib/all/source.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD) $(OPTIM) -o $(TARGET_REL) 
+	$(CC) main.cpp $(INCLUDE_PCL) $(INCLUDE_DLIB) $(LD_REL) $(OPTIM) -o $(TARGET_REL)
 
 # TIP : $^ means every dependency, $< means dependency one by one
 # MATH

@@ -55,6 +55,8 @@ namespace AF {
 				N.parent = atoi(str);
 				ifs.getline(str, 100);
 				N.level = atoi(str);
+				ifs.getline(str, 100);
+				N.volume = atof(str);
 
 				vec3d cen;
 				double rad;
@@ -75,7 +77,7 @@ namespace AF {
 		}
 		ifs.close();
 		std::cout<<"Load complete : "<<path<<std::endl;
-	}
+	}	
 	void SRsphere_tree::save(const std::string &path) {
 		std::ofstream ofs;
 		ofs.open(path, std::ios::binary);
@@ -107,6 +109,7 @@ namespace AF {
 			ofs<<"P"<<std::endl;
 			ofs<<it->parent<<std::endl;
 			ofs<<it->level<<std::endl;
+			ofs<<it->volume<<std::endl;
 			ofs<<it->S.get_geometry_c().get_center()[0]<<std::endl;
 			ofs<<it->S.get_geometry_c().get_center()[1]<<std::endl;
 			ofs<<it->S.get_geometry_c().get_center()[2]<<std::endl;
@@ -116,6 +119,23 @@ namespace AF {
 		std::cout<<"Save complete : "<<path<<std::endl;
 	}
 
+	double set_volume_recur(SRsphere_tree &ST, int id) {
+		SRsphere_tree::node &N = ST.tree.at(id);
+		if(N.level == ST.height) {
+			N.volume = N.S.get_geometry().volume();
+			return N.volume;
+		}
+		else {
+			double V = 0;
+			for(auto it = N.child.begin(); it != N.child.end(); it++) 
+				V += set_volume_recur(ST, *it);
+			N.volume = V;
+			return V;
+		}
+	}
+	void SRsphere_tree::set_volume() {
+		set_volume_recur(*this, root);
+	}
     void SRsphere_tree::build(const std::set<vec3d> &point_cloud, int multiplier) {
 		tree.clear();
 		cur_nodes.clear();

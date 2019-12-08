@@ -487,6 +487,7 @@ void show_search_tree_node() {
     std::shared_ptr<AF::SRsphere_tree>
         tptr = std::make_shared<AF::SRsphere_tree>(DB.tree.at(search_tree_node).ST);
     //tptr->build_shader("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    tptr->set_shader(globalShader);
     tptr->build_render();
     int level = DB.tree.at(search_tree_node).level;
     for(int i = 1; i < level; i++)
@@ -507,13 +508,26 @@ void search_tree_ui_rec(int node) {
         const auto &child = DB.tree.at(node).child;
         for(auto it = child.begin(); it != child.end(); it++)
             search_tree_ui_rec(*it);
+        const auto &models = DB.tree.at(node).models;
+        for(auto it = models.begin(); it != models.end(); it++)
+            ImGui::Text(it->path.c_str());
         ImGui::TreePop();
     }
 }
 
 void search_tree_ui() {
+    static char path[100] = "test.db";
+    ImGui::InputText("file path", path, 100);
+    ImGui::SameLine();
+    if(ImGui::Button("Save"))
+        DB.save(path);
+    ImGui::SameLine();
+    if(ImGui::Button("Load")) 
+        DB.load(path);
+
     if(DB.tree.empty())
-        return;
+        return;    
+    
     if(ImGui::Button("Change render mode")) {
         if(search_tree_rmode == 0)
             search_tree_rmode = 1;
@@ -558,9 +572,9 @@ void SRmenu_model() {
                 bool v = get_model_mesh(id).is_valid();
                 get_model_mesh(id).set_valid(!v);
             }
-            ImGui::SameLine();
-            if(ImGui::Button("Unit size"))
-                unit_size(id);                
+            //ImGui::SameLine();
+            // if(ImGui::Button("Unit size"))
+            //     unit_size(id);                
             ImGui::SameLine();
             if(ImGui::Button("Set normal")) 
                 compute_normal(id);            
@@ -591,12 +605,12 @@ void SRmenu_model() {
             ImGui::SameLine();
             if(ImGui::Button("Change STree render"))            
                 change_sphere_tree_render_mode(id);
-            ImGui::SameLine();
-            if(ImGui::Button("Flip ma normal"))            
-            {
-                ma_flip = !ma_flip;
-                build_medial_axis(id);
-            }
+            //ImGui::SameLine();
+            // if(ImGui::Button("Flip ma normal"))            
+            // {
+            //     ma_flip = !ma_flip;
+            //     build_medial_axis(id);
+            // }
             ImGui::PopID();
             id++;
         }
@@ -656,7 +670,7 @@ void SRmenu_EMD() {
 void SRmenu_search() {
     if(ImGui::TreeNode("Select models")) {
         for(auto it = models.begin(); it != models.end(); it++) {
-            if(DB.model_node_map.find((*it)->get_id()) != DB.model_node_map.end())
+            if(DB.model_node_map.find((*it)->get_name()) != DB.model_node_map.end())
                 continue;
             bool b = models_select.at(std::distance(models.begin(), it));
             ImGui::Checkbox((*it)->get_name().c_str(), &b);
@@ -677,10 +691,11 @@ void SRmenu_search() {
             for(int i = 0; i < models_select.size(); i++) {
                 if(!models_select[i])
                     continue;
-                unsigned int model_id = models.at(i)->get_id();
-                if(DB.model_node_map.find(model_id) != DB.model_node_map.end())
+                std::string model_path = models.at(i)->get_name();
+                if(DB.model_node_map.find(model_path) != DB.model_node_map.end())
                     continue;
                 DB.add(models.at(i));
+                std::cout<<"Added "<<i<<" th model."<<std::endl;
             }
         }
         ImGui::TreePop();
@@ -753,19 +768,26 @@ int main(int argc, char** argv)
     ImGui_ImplOpenGL3_Init();
 
     /////// ========================================== For utility.
-    namespace fs = std::experimental::filesystem;
-    fs::path valPath = fs::current_path();
-    valPath /= "Assets/val/02691156/";
-    int i = 0;
-    for(auto file : fs::directory_iterator(valPath)) {
-        std::string name = file.path();
-        if(*(name.end() - 3) == 's')
-            continue;
-        import_model(file.path());   
-        i++;
-        if(i == 10)
-            break;
-    }
+    // namespace fs = std::experimental::filesystem;
+    // fs::path valPath = fs::current_path();
+    // valPath /= "/Assets/val/";
+    // int i = 0;
+    // for(auto folder : fs::directory_iterator(valPath)) {
+    //     int j = 0;
+    //     for(auto file : fs::directory_iterator(folder.path())) {
+    //         std::string name = file.path();
+    //         if(*(name.end() - 3) == 's') {
+    //             name.replace(name.end() - 3, name.end(), "obj");
+    //             import_model(name);
+    //             j++;
+    //             if(j == 10)    
+    //                 break;
+    //         }
+    //     }
+    //     i++;
+    //     // if(i == 1)
+    //     //     break;
+    // }
 
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
@@ -878,4 +900,90 @@ int main(int argc, char** argv)
 //     }
 
 //     return 0;
+// }
+
+// int main(int argc, char **argv) {
+//     // Code to compute volumes...
+//     namespace fs = std::experimental::filesystem;
+//     fs::path valPath = fs::current_path();
+//     valPath /= "Assets/val/";
+//     for(auto it : fs::directory_iterator(valPath)) {
+//         //std::cout<<it<<std::endl;
+//         std::cout<<"Start "<<it.path()<<std::endl;
+//         for(auto file : fs::directory_iterator(it)) {
+//             std::string saveFile = file.path();
+//             if(*(saveFile.end() - 3) == 'o')
+//                 continue;
+
+//             std::cout<<saveFile<<std::endl;
+//             //import_model(file.path());
+//             AF::SRsphere_tree ST;
+//             ST.load(saveFile);
+//             try {
+//                 ST.set_volume();
+//             } catch (std::exception &e) {
+//                 std::cerr<<"Cannot use "<<saveFile<<"..."<<std::endl;
+//                 fs::remove(saveFile);
+//                 continue;
+//             }
+//             ST.save2(saveFile);
+//         }
+//     }
+
+//     return 0;
+// }
+
+// int main(int argc, char **argv) {
+//     namespace fs = std::experimental::filesystem;
+//     fs::path valPath = fs::current_path();
+//     valPath /= "/Assets/val/";
+//     int cnt = 0;
+//     int i = 0;
+//     DB.load("test.db");
+//     for(auto folder : fs::directory_iterator(valPath)) {
+//         int j = 0;
+//         for(auto file : fs::directory_iterator(folder.path())) {
+//             std::string name = file.path();
+//             if(*(name.end() - 3) == 's') {
+//                 name.replace(name.end() - 3, name.end(), "obj");
+
+//                 if(DB.model_node_map.find(name) != DB.model_node_map.end()) {
+//                     std::cout<<"Already in DB : "<<name<<std::endl;
+//                     cnt++;
+//                     j++;
+//                     if(j == 10)
+//                         break;
+//                     continue;
+//                 }
+
+//                 AF::rmesh3 mesh;
+//                 mesh.build_obj(name);
+//                 mesh.scale_norm();
+
+//                 std::string saveFile = name;
+//                 saveFile.replace(saveFile.end() - 3, saveFile.end(), "str");
+//                 std::ifstream ifs(saveFile);
+
+//                 AF::SRsphere_tree ST;
+//                 if(ifs.is_open()) {
+//                     ifs.close();
+//                     ST.load(saveFile);
+//                 }
+//                 else {
+//                     ST.build(mesh);
+//                 }    
+
+//                 DB.add(name, ST);
+//                 std::cout<<"Added "<<name<<" to DB(" << cnt++<<")."<<std::endl;
+
+//                 j++;
+//                 if(j == 10)
+//                     break;
+//             }
+//         }
+//         i++;
+//         if(i % 5 == 0)
+//             DB.save("test.db");
+//     }
+//     DB.save("test.db");
 // }

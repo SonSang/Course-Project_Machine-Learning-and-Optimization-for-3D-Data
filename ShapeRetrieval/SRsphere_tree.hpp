@@ -64,6 +64,8 @@ namespace AF {
 			int parent;
 			int level;	// height for leaf, 1 for root.
 
+			double volume;		// Volume sum of leaf nodes that belong to this node.
+
 			property_render_geometry<SRsphere> S;
 		};
 		std::vector<node> tree;
@@ -72,6 +74,12 @@ namespace AF {
 
 		void load(const std::string &path);
 		void save(const std::string &path);
+
+		// Newly added volume...
+		// void load2(const std::string &path);		
+		// void save2(const std::string &path);
+
+		void set_volume();	// Compute and set volume value of each nodes.
 		
 		// Build this tree from input [ point_cloud ].
 		// @multiplier : Amount of nodes that increase when level goes deeper.
