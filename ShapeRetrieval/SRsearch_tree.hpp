@@ -18,7 +18,7 @@ namespace AF {
 
 
         //model5 searchID(std::shared_ptr<object> &query);  // Find best matching model in the tree to the given query model.
-        model5 search(const SRsphere_tree &stree);      // Find best matching model in the tree to the given query model.
+        
     public:
         class model {
         public:
@@ -51,6 +51,7 @@ namespace AF {
                                                                             // Before add, the model must have built sphere tree!
         void add(const std::string &path, SRsphere_tree &ST);
         model5 search(std::shared_ptr<object> &query);                      // Find best matching model in the tree to the given query model.
+        model5 search(const SRsphere_tree &stree);                          // Find best matching model in the tree to the given query model.
 
         void load(const std::string &path);
         void save(const std::string &path);

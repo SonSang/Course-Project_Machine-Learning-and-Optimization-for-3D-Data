@@ -551,15 +551,17 @@ void search_tree_ui() {
 void SRmenu_model();
 void SRmenu_EMD();
 void SRmenu_search();
+void SRmenu_final();
 
 void SRmenu() {
     ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
-    if(ImGui::CollapsingHeader("Model"))
-        SRmenu_model();
-    if(ImGui::CollapsingHeader("Search"))
-        SRmenu_search();
-    if(ImGui::CollapsingHeader("EMD"))
-        SRmenu_EMD();
+    // if(ImGui::CollapsingHeader("Model"))
+    //     SRmenu_model();
+    // if(ImGui::CollapsingHeader("Search"))
+    //     SRmenu_search();
+    // if(ImGui::CollapsingHeader("EMD"))
+    //    SRmenu_EMD();
+    SRmenu_final();
     ImGui::End();
 }
 void SRmenu_model() {
@@ -706,6 +708,105 @@ void SRmenu_search() {
     }
 }
 
+// ===================================================================== FINAL UI ====================================
+std::shared_ptr<AF::object> searchModel;
+std::array<std::string, 5> searchResult;
+bool selectModelInit = true;
+
+void selectSearchModel(const std::string &path) {
+
+    if(selectModelInit) {
+        searchModel = std::make_shared<AF::object>(path);
+        SM.get_object_manager().add_object(searchModel);
+        selectModelInit = false;
+    }
+    else {
+        searchModel->set_name(path);
+        searchModel->delete_derived_property<AF::property_render>();
+    }
+    std::shared_ptr<AF::property_render_geometry<AF::rmesh3>>
+        ptr = std::make_shared<AF::property_render_geometry<AF::rmesh3>>();
+    std::shared_ptr<AF::SRsphere_tree>
+        tptr = std::make_shared<AF::SRsphere_tree>();
+
+    ptr->set_shader(globalShader);
+    ptr->get_geometry().build_obj(path);
+    ptr->get_geometry().scale_norm();
+    ptr->get_geometry().compute_normals();
+    ptr->build_BO();
+    ptr->get_config().M = ptr->get_config().PHONG;
+    ptr->set_valid(true);
+    SM.add_object_property(searchModel->get_id(), ptr);
+
+    std::string strFile = path;
+    strFile.replace(strFile.end() - 3, strFile.end(), "str");
+    std::ifstream ifs(strFile);
+    if(!ifs.is_open()) {
+        std::cerr<<"There is no .str file."<<std::endl;
+        ifs.close();
+        return;
+    }   
+    ifs.close();
+    tptr->set_shader(globalShader);
+    tptr->set_valid(false);
+    tptr->load(strFile);
+    SM.add_object_property(searchModel->get_id(), tptr);
+
+    AF::material material;
+    material.set_emmision(AF::color(0, 0, 0));
+    material.set_ambient(AF::color(0.2, 0.2, 0.2));
+    material.set_diffuse(AF::color(0.4, 0.4, 0.4));
+    material.set_specular(AF::color(1.0, 1.0, 1.0));
+    material.set_shininess(100);    
+    ptr->shader_set_material(material);
+    
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+    ptr->shader_set_light_point(light);
+}
+
+void doSearch() {
+    auto &stree = *(*(searchModel->get_property<AF::SRsphere_tree>().begin()));
+    searchResult = DB.search(stree);
+}
+
+void SRmenu_final() {
+    if(ImGui::TreeNode("Select input model")) {
+        namespace fs = std::experimental::filesystem;
+        fs::path valPath = fs::current_path();
+        valPath /= "/Assets/val/";
+        for(auto folder : fs::directory_iterator(valPath)) {
+            if(ImGui::TreeNode(folder.path().c_str())) {
+                for(auto file : fs::directory_iterator(folder.path())) {
+                    std::string name = file.path();
+                    if(*(name.end() - 3) == 's') {
+                        name.replace(name.end() - 3, name.end(), "obj");
+                        if(ImGui::Button(name.c_str())) {
+                            selectSearchModel(name);
+                        }
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+    if(ImGui::TreeNode("Search")) {
+        if(!selectModelInit) {
+            if(ImGui::Button("Search")) 
+            doSearch();
+            for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
+                if(ImGui::Button(it->c_str())) 
+                   selectSearchModel(*it);
+            }
+        }
+        ImGui::TreePop();
+    }
+}
+
 int main(int argc, char** argv)
 {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -745,6 +846,7 @@ int main(int argc, char** argv)
 
     init_camera();
     globalShader.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    
 
     glEnable(GL_DEPTH_TEST);
 
@@ -791,6 +893,7 @@ int main(int argc, char** argv)
 
     //import_model("./Assets/Greek_Vase/Greek_Vase_3.obj");
     update_models_select();
+    DB.load("test.db");
     ////// ===========================================
 
     // Main loop.
