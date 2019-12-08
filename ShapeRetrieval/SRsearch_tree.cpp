@@ -264,6 +264,11 @@ namespace AF {
                     if(metric < error_upper_bound) 
                         error_upper_bound = metric;
 
+                    // Choice 1 : DEFAULT
+                    //results.insert({it->path, metric});
+
+                    // Choice 2 : CHAMFER's DISTANCE
+                    metric = SRsphere_tree::computeCD(ST, stree, height);
                     results.insert({it->path, metric});
                 }
             }

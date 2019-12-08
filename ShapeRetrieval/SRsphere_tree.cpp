@@ -1395,6 +1395,62 @@ namespace AF {
 		TR.set_translation(T);
 	}
 
+	double SRsphere_tree::computeCD(const SRsphere_tree &a, const SRsphere_tree &b, int level) {
+		int begin, end;
+		a.get_level_set(level, begin, end);
+
+		AF::SRpoint_cloud pcA, pcB;
+		pcA.pc.resize(end - begin);
+		pcB.pc.resize(end - begin);
+
+		int cnt = 0;
+		for(int i = begin; i < end; i++) {
+			pcA.pc[cnt] = a.tree[i].S.get_geometry_c().get_center();
+			pcB.pc[cnt] = b.tree[i].S.get_geometry_c().get_center();
+			cnt++;
+		}
+
+		nano_kdtree kdtA(3, pcA, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+		nano_kdtree kdtB(3, pcB, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+
+		double CDa = 0, CDb = 0;
+
+		size_t k = 1;
+		size_t ret_index;
+		double ret_dist;
+		nanoflann::KNNResultSet<double> resultSet(k);
+
+		vec3d ptv;
+		vec3d resv;
+		double pt[3];
+		for(int i = 0; i < cnt; i++) {
+			ptv = pcA.pc[i];
+			pt[0] = ptv[0];
+			pt[1] = ptv[1];
+			pt[2] = ptv[2];
+	
+			resultSet.init(&ret_index, &ret_dist);
+
+			kdtB.findNeighbors(resultSet, pt, nanoflann::SearchParams(10));
+			resv = pcB.pc[ret_index];
+			CDa += (ptv - resv).len();
+		}
+
+		for(int i = 0; i < cnt; i++) {
+			ptv = pcB.pc[i];
+			pt[0] = ptv[0];
+			pt[1] = ptv[1];
+			pt[2] = ptv[2];
+
+			resultSet.init(&ret_index, &ret_dist);
+
+			kdtA.findNeighbors(resultSet, pt, nanoflann::SearchParams(10));
+			resv = pcA.pc[ret_index];
+			CDb += (ptv - resv).len();
+		}
+		return CDa + CDb;
+	}
+
 	// typedef dlib::matrix<double, 0, 1> column_vector;
 	// SRsphere_tree optim_base;
 	// SRsphere_tree optim_source;

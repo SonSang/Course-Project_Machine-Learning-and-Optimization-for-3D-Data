@@ -26,6 +26,9 @@
 #include "ShapeRetrieval/SRsphere_tree.hpp"
 #include "ShapeRetrieval/SRcgal_interface.hpp"
 #include "ShapeRetrieval/SRsearch_tree.hpp"
+
+#include "AMath/timer.hpp"
+#include "AMath/random.hpp"
 #include <iostream>
 
 // Imgui
@@ -770,7 +773,10 @@ void selectSearchModel(const std::string &path) {
 
 void doSearch() {
     auto &stree = *(*(searchModel->get_property<AF::SRsphere_tree>().begin()));
+
+    AF::timer::start("Search Time");
     searchResult = DB.search(stree);
+    AF::timer::end_print();
 }
 
 void SRmenu_final() {
@@ -1089,4 +1095,19 @@ int main(int argc, char** argv)
 //             DB.save("test.db");
 //     }
 //     DB.save("test.db");
+// }
+
+// int main() {
+//     AF::timer::start("TEST");
+//     std::vector<double> rands;
+//     for(int i = 0; i < 1e+6; i++) {
+//         rands.push_back(AF::random::double_(0, i));
+//     }
+//     double sum = 0;
+//     for(auto it = rands.begin(); it != rands.end(); it++) {
+//         sum += *it;
+//     }
+//     AF::timer::end_print();
+//     std::cout<<sum / (double)(1e+6)<<std::endl;
+//     return 0;
 // }

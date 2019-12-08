@@ -171,6 +171,9 @@ namespace AF {
 		static void align_emd(const SRsphere_tree &base, const SRsphere_tree &source, int level, align_var &param);
 		// We use simple ICP technique to find best alignment.
 		static void align_icp(const SRsphere_tree &base, const SRsphere_tree &source, int level, transform &TR);
+
+		// Compute Chamfer's distance between two trees.
+		static double computeCD(const SRsphere_tree &a, const SRsphere_tree &b, int level);
 	};
 }
 

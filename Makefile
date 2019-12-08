@@ -1,7 +1,7 @@
 # ================================================= GCC
 CC = g++ -std=c++17
 DEBUG = -g
-OPTIM = -O2 -march=native -ffast-math
+OPTIM = -O2 -march=native -ffast-math -mavx
 TARGET = ./Output/GCC/main.exe
 TARGET_REL = ./Output/GCC/mainr.exe
 

@@ -5,19 +5,20 @@
 #include <chrono>
 
 std::string name;
-double		start;
-double		end;
+std::chrono::system_clock::time_point start;
+std::chrono::system_clock::time_point end;
 
 namespace AF {
     void timer::start(const std::string &n) {
         name = n;
-        ::start = get_time();
+        ::start = std::chrono::system_clock::now();
     }
     void timer::end() {
-        ::end = get_time();
+        ::end = std::chrono::system_clock::now();
     }
     void timer::print() {
-        std::cout << "[" << name << "] : " << ::end - ::start << "(sec), " << (::end - ::start) * 1e+3 << "(msec)" << std::endl;
+        std::chrono::duration<double> sec = ::end - ::start;
+        std::cout << "[" << name << "] : " << sec.count() << "(sec), " << sec.count() * 1e+3 << "(msec)" << std::endl;
     }
     void timer::end_print() {
         end();
@@ -30,7 +31,9 @@ namespace AF {
     }
 
     double timer::get_elapsed_time() {
-        return (::end) - (::start);
+        std::chrono::duration<double> sec = ::end - ::start;
+        return sec.count();
+        //return (::end) - (::start);
     }
 
     // stat_time
