@@ -677,7 +677,6 @@ void SRmenu_search();
 void SRmenu_final();
 
 void SRmenu() {
-    ImGui::Begin("Shape Retrieval menu", &SRmenu_on);
     if(ImGui::CollapsingHeader("Model"))
         SRmenu_model();
     // if(ImGui::CollapsingHeader("Search"))
@@ -840,7 +839,7 @@ std::shared_ptr<AF::object> searchModel;
 std::vector<std::string> searchResult;
 bool selectModelInit = true;
 
-void selectSearchModel(const std::string &path) {
+void selectSearchModel(std::string &path) {
 
     if(selectModelInit) {
         searchModel = std::make_shared<AF::object>(path);
@@ -857,7 +856,23 @@ void selectSearchModel(const std::string &path) {
         tptr = std::make_shared<AF::SRsphere_tree>();
 
     ptr->set_shader(globalShader);
-    ptr->get_geometry().build_obj(path);
+    try {
+        ptr->get_geometry().build_obj(path);
+    } catch(std::exception &e) {
+        std::string npath = path;
+        for(int i = 0; i < npath.length(); i++) {
+            if(npath.substr(i, 7) == std::string("/Assets")) {
+                npath = npath.substr(i);
+                namespace fs = std::experimental::filesystem;
+                fs::path valPath = fs::current_path();
+                valPath /= npath;
+                path = valPath;
+                break;
+            }
+        }
+        ptr->get_geometry().build_obj(path);
+    }
+    
     ptr->get_geometry().scale_norm();
     ptr->get_geometry().compute_normals();
     ptr->build_BO();
