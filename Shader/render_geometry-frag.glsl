@@ -35,7 +35,7 @@ void main(void) {
         color = apply_light_point();
     }
     else {
-        color = vec3(1, 0, 0);
+        color = MM.diffuse;
     }
 
     gl_FragColor = vec4(color, 1.0);

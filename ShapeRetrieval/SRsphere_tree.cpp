@@ -1253,6 +1253,86 @@ namespace AF {
 			}
 		}
 	}
+	void SRsphere_tree::test_pseudo_hd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB, vec3d &apt, vec3d &bpt) {
+		test_pseudo_emd(a, b, level, subA, subB);
+		
+		int begin, end;
+		a.get_level_set(level, begin, end);
+
+		AF::SRpoint_cloud pcA, pcB;
+		pcA.pc.resize(end - begin);
+		pcB.pc.resize(end - begin);
+
+		int cnt = 0;
+		for(int i = begin; i < end; i++) {
+			pcA.pc[cnt] = a.tree[i].S.get_geometry_c().get_center();
+			pcB.pc[cnt] = b.tree[i].S.get_geometry_c().get_center();
+			cnt++;
+		}
+
+		nano_kdtree kdtA(3, pcA, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+		nano_kdtree kdtB(3, pcB, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+
+		double HD = 0;
+
+		size_t k = 1;
+		size_t ret_index;
+		double ret_dist;
+		nanoflann::KNNResultSet<double> resultSet(k);
+
+		vec3d ptv;
+		vec3d resv;
+		double pt[3];
+		for(int i = 0; i < subA.set.size(); i++) {
+			ptv = subA.set[i].get_geometry().get_center();
+			pt[0] = ptv[0];
+			pt[1] = ptv[1];
+			pt[2] = ptv[2];
+	
+			resultSet.init(&ret_index, &ret_dist);
+
+			kdtB.findNeighbors(resultSet, pt, nanoflann::SearchParams(10));
+			resv = pcB.pc[ret_index];
+
+			vec3d sub = resv - ptv;
+			sub.normalize();
+
+			vec3d closeA = ptv + sub * subA.set[i].get_geometry_c().get_radius();
+			vec3d closeB = resv - sub * b.tree.at(begin + ret_index).S.get_geometry_c().get_radius();
+
+			double dist = (closeA - closeB).len();
+			if(dist > HD) {
+				HD = dist;
+				apt = closeA;
+				bpt = closeB;
+			}
+		}
+
+		for(int i = 0; i < subB.set.size(); i++) {
+			ptv = subB.set[i].get_geometry().get_center();
+			pt[0] = ptv[0];
+			pt[1] = ptv[1];
+			pt[2] = ptv[2];
+	
+			resultSet.init(&ret_index, &ret_dist);
+
+			kdtA.findNeighbors(resultSet, pt, nanoflann::SearchParams(10));
+			resv = pcA.pc[ret_index];
+
+			vec3d sub = resv - ptv;
+			sub.normalize();
+
+			vec3d closeB = ptv + sub * subB.set[i].get_geometry_c().get_radius();
+			vec3d closeA = resv - sub * a.tree.at(begin + ret_index).S.get_geometry_c().get_radius();
+
+			double dist = (closeA - closeB).len();
+			if(dist > HD) {
+				HD = dist;
+				apt = closeA;
+				bpt = closeB;
+			}
+		}
+	}
 
 	double SRsphere_tree::compute_level_volume(int level) const {
 		if(level > 8 || level < 1) 
