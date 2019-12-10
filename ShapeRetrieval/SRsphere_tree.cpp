@@ -1015,6 +1015,15 @@ namespace AF {
 			TR.set_translation(T);
 
 			tree.at(*it).S.get_shader_c().set_uniform_model_matrix(TR);
+
+			AF::material material;
+			material.set_emmision(AF::color(0, 0, 0));
+			material.set_ambient(AF::color(0.2, 0.2, 0.2));
+			material.set_diffuse(AF::color(0.9, 0.4, 0.4));
+			material.set_specular(AF::color(1.0, 1.0, 1.0));
+			material.set_shininess(100);    
+
+			tree.at(*it).S.shader_set_material(material);
 			tree.at(*it).S.render();
 		}
 	}
@@ -1098,36 +1107,49 @@ namespace AF {
 
 	// EMD
 	double SRsphere_tree::compute_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level) {
-		if(level < 0 || level > a.height || level > b.height)  
-			throw(std::invalid_argument("Invalid tree level for collision detection."));
+		// if(level < 0 || level > a.height || level > b.height)  
+		// 	throw(std::invalid_argument("Invalid tree level for collision detection."));
 
 		// 1. Extract subset of each tree's sphere set that is not covered by the other's spheres.
-		std::map<int, SRsphere> level_set_a;
-		std::map<int, SRsphere> level_set_b;	// node - sphere pairs.
+		int beg, end;
+		a.get_level_set(level, beg, end);
 
-		std::set<int> level_a = a.get_level_set(level);
-		std::set<int> level_b = b.get_level_set(level);
+		std::vector<SRsphere> level_set_a;
+		std::vector<SRsphere> level_set_b;
+		// std::map<int, SRsphere> level_set_a;
+		// std::map<int, SRsphere> level_set_b;	// node - sphere pairs.
 
-		for(auto it = level_a.begin(); it != level_a.end(); it++) 
-			level_set_a.insert({*it, a.tree.at(*it).S.get_geometry_c()});
-		for(auto it = level_b.begin(); it != level_b.end(); it++) 
-			level_set_b.insert({*it, b.tree.at(*it).S.get_geometry_c()});
+		// std::set<int> level_a = a.get_level_set(level);
+		// std::set<int> level_b = b.get_level_set(level);
+
+		level_set_a.resize(end - beg);
+		level_set_b.resize(end - beg);
+		for(int i = beg; i < end; i++) {
+			level_set_a[i - beg] = a.tree[i].S.get_geometry_c();
+			level_set_b[i - beg] = b.tree[i].S.get_geometry_c();
+		}
+
+		// for(auto it = level_a.begin(); it != level_a.end(); it++) 
+		// 	level_set_a.insert({*it, a.tree.at(*it).S.get_geometry_c()});
+		// for(auto it = level_b.begin(); it != level_b.end(); it++) 
+		// 	level_set_b.insert({*it, b.tree.at(*it).S.get_geometry_c()});
 
 		using idpair = std::pair<int, int>;
 		std::vector<idpair> queue;					// ( other.id, this.id )
 
+		queue.reserve(end - beg);
 		queue.push_back(idpair(a.root, b.root));
 		while(!queue.empty()) {
 			idpair ip = queue.back(); queue.pop_back();
 			int aid = ip.first, bid = ip.second;
-			const auto &nodeA = a.tree.at(aid);
-			const auto &nodeB = b.tree.at(bid);
+			const auto &nodeA = a.tree[aid];
+			const auto &nodeB = b.tree[bid];
 			if(SRsphere::overlap(nodeA.S.get_geometry_c(), nodeB.S.get_geometry_c())) {
 				bool is_level_a = (nodeA.level == level);
 				bool is_level_b = (nodeB.level == level);
 				if(is_level_a && is_level_b) {
-					level_set_a.at(aid).subtract(nodeB.S.get_geometry_c());
-					level_set_b.at(bid).subtract(nodeA.S.get_geometry_c());
+					level_set_a[aid - beg].subtract(nodeB.S.get_geometry_c());
+					level_set_b[bid - beg].subtract(nodeA.S.get_geometry_c());
 				}
 				else if(is_level_a) {
 					for(auto it = nodeB.child.begin(); it != nodeB.child.end(); it++)
@@ -1148,11 +1170,11 @@ namespace AF {
 		// 2. Compute EMD : Just add up all sphere's volume!
 		double EMD = 0;
 		for(auto it = level_set_a.begin(); it != level_set_a.end(); it++) {
-			double r = it->second.get_radius();
+			double r = it->get_radius();
 			EMD += r * r * r;
 		}
 		for(auto it = level_set_b.begin(); it != level_set_b.end(); it++) {
-			double r = it->second.get_radius();
+			double r = it->get_radius();
 			EMD += r * r * r;
 		}
 		EMD *= (4.0 / 3.0) * pi;
@@ -1591,6 +1613,13 @@ namespace AF {
 		}
 		return EMDa + EMDb;
 	} 
+
+	double SRsphere_tree::computeHD(const SRsphere_tree &a, const SRsphere_tree &b, int level) {
+		SRsphere_set subA, subB;
+		vec3d apt, bpt;
+		test_pseudo_hd(a, b, level, subA, subB, apt, bpt);
+		return (apt - bpt).len();
+	}
 
 	// typedef dlib::matrix<double, 0, 1> column_vector;
 	// SRsphere_tree optim_base;

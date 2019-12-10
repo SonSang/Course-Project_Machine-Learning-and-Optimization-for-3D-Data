@@ -5,7 +5,7 @@ namespace AF {
         property_render_geometry<SRsphere> sample;
 		sample.get_geometry().set_center(vec3d(0, 0, 0));
 		sample.get_geometry().set_radius(1.0);
-		sample.build_BO_mesh3(sample.get_geometry_c().get_mesh2());
+		sample.build_BO_mesh3(sample.get_geometry_c().get_mesh3());
 		for(auto it = set.begin(); it != set.end(); it++) {
 			//it->set_shader(this->get_shader());
 			it->set_BO(sample.get_BO());

@@ -184,7 +184,13 @@ void import_model(const std::string &path) {
     AF::material material;
     material.set_emmision(AF::color(0, 0, 0));
     material.set_ambient(AF::color(0.2, 0.2, 0.2));
-    material.set_diffuse(AF::color(0.4, 0.4, 0.4));
+    if(models.empty())
+        material.set_diffuse(AF::color(0.7, 0.4, 0.4));
+    else
+    {
+        material.set_diffuse(AF::color(0.4, 0.4, 0.7));
+    }
+    
     material.set_specular(AF::color(1.0, 1.0, 1.0));
     material.set_shininess(100);    
     ptr->set_material(material);
@@ -277,7 +283,7 @@ void update_models_select() {
 static AF::SRsphere_tree::align_var av(0, 0, 0, 0, 0, 0);
 static AF::transform atr;
 
-static int residue_rmode = 0;
+static int residue_rmode = 1;
 
 void findResidue(int level) {
     if(level > 8 || level < 1) {
@@ -499,6 +505,116 @@ void findResidueHD(int level) {
     SM.add_object_property(residue_spheres->get_id(), bptr);
 }
 
+void findCD(int level) {
+    if(level > 8 || level < 1) {
+        std::cout<<"Level must be lower than 7."<<std::endl;
+        return;
+    }
+    // EMD test 1 : Simple test, for given two sphere trees and level,
+    //              subtract one from each other and compute EMD.
+    int aid = -1, bid = -1;
+    for(int i = 0; i < models_select.size(); i++) {
+        if(models_select[i])
+        {
+            if(aid == -1) 
+                aid = i;
+            else if(bid == -1) {
+                bid = i;
+                break;
+            }
+        }
+    }
+    if(aid == -1 || bid == -1) {
+        std::cout<<"Please select two models for EMD."<<std::endl;
+        return;
+    }
+
+    int beg, end;
+    get_model_sphere_tree(aid).get_level_set(level, beg, end);
+    AF::SRsphere_set subA, subB;
+
+    auto stA = get_model_sphere_tree(aid);
+    auto stB = get_model_sphere_tree(bid);
+
+    for(int i = beg; i < end; i++) {
+        subA.set.push_back(stA.tree[i].S);
+        subB.set.push_back(stB.tree[i].S);
+        subA.set.back().get_geometry().set_radius(1e-3);
+        subB.set.back().get_geometry().set_radius(1e-3);
+    }
+
+    AF::shader localShaderA, localShaderB, localShaderC;
+    localShaderA.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+    localShaderB.set_program("./Shader/render_geometry-vert.glsl", "./Shader/render_geometry-frag.glsl");
+
+    static bool init = false;
+    // Draw [ sub ].
+    if(!init) {
+        residue_spheres = std::make_shared<AF::object>("residueSpheres");
+        SM.get_object_manager().add_object(residue_spheres);
+        init = true;
+    }
+    else {
+        auto properties = residue_spheres->get_property<AF::SRsphere_set>();
+        for(auto it = properties.begin(); it != properties.end(); it++)
+            (*it)->destroy_render();
+        residue_spheres->delete_derived_property<AF::property_render>();
+    }
+    std::shared_ptr<AF::SRsphere_set>
+        aptr = std::make_shared<AF::SRsphere_set>(subA),
+        bptr = std::make_shared<AF::SRsphere_set>(subB);
+    std::shared_ptr<AF::property_render_geometry<AF::line>>
+        lptr = std::make_shared<AF::property_render_geometry<AF::line>>();
+
+    aptr->set_shader(localShaderA);
+    bptr->set_shader(localShaderB);
+    
+    AF::material materialA;
+    materialA.set_emmision(AF::color(0, 0, 0));
+    materialA.set_ambient(AF::color(0.2, 0.2, 0.2));
+    materialA.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    materialA.set_specular(AF::color(1.0, 1.0, 1.0));
+    materialA.set_shininess(100);    
+
+    AF::material materialB;
+    materialB.set_emmision(AF::color(0, 0, 0));
+    materialB.set_ambient(AF::color(0.2, 0.2, 0.2));
+    materialB.set_diffuse(AF::color(0.4, 0.4, 0.9));
+    materialB.set_specular(AF::color(1.0, 1.0, 1.0));
+    materialB.set_shininess(100);  
+
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+
+    for(auto it = aptr->set.begin(); it != aptr->set.end(); it++) {
+        it->set_shader(localShaderA);
+        it->shader_set_material(materialA);
+        it->shader_set_light_point(light);
+        it->set_valid(true);
+        it->get_config().M = (residue_rmode == 0) ? it->get_config().WIREFRAME : it->get_config().PHONG;
+    }
+
+    for(auto it = bptr->set.begin(); it != bptr->set.end(); it++) {
+        it->set_shader(localShaderB);
+        it->shader_set_material(materialB);
+        it->shader_set_light_point(light);
+        it->set_valid(true);
+        it->get_config().M = (residue_rmode == 0) ? it->get_config().WIREFRAME : it->get_config().PHONG;
+    }
+
+    aptr->build_render();
+    bptr->build_render();
+
+    aptr->set_valid(true);
+    bptr->set_valid(true);
+
+    SM.add_object_property(residue_spheres->get_id(), aptr);
+    SM.add_object_property(residue_spheres->get_id(), bptr);
+}
+
 void testEMD2(int level) {
     if(level > 8 || level < 1) {
         std::cout<<"Level must be lower than 7."<<std::endl;
@@ -615,6 +731,26 @@ void show_search_tree_node() {
     int level = DB.tree.at(search_tree_node).level;
     for(int i = 1; i < level; i++)
         tptr->render_nodes_child();
+
+    AF::material material;
+    material.set_emmision(AF::color(0, 0, 0));
+    material.set_ambient(AF::color(0.2, 0.2, 0.2));
+    material.set_diffuse(AF::color(0.9, 0.4, 0.4));
+    material.set_specular(AF::color(1.0, 1.0, 1.0));
+    material.set_shininess(100);    
+
+    AF::light_point light;
+    light.set_position(AF::vec3d(0, 0, 0));
+    light.set_ambient(AF::color(0.2, 0.2, 0.2));
+    light.set_diffuse(AF::color(1.0, 1.0, 1.0));
+    light.set_specular(AF::color(0.7, 0.7, 0.7));
+
+    for(auto it : tptr->tree) {
+        it.S.set_material(material);
+        it.S.shader_set_material(material);
+        it.S.shader_set_light_point(light);
+    }
+
     tptr->set_valid(true);
     tptr->set_render_mode(search_tree_rmode);
     SM.add_object_property(search_model->get_id(), tptr);
@@ -677,14 +813,14 @@ void SRmenu_search();
 void SRmenu_final();
 
 void SRmenu() {
-    if(ImGui::CollapsingHeader("Model"))
-        SRmenu_model();
-    // if(ImGui::CollapsingHeader("Search"))
+    // if(ImGui::CollapsingHeader("Model"))
+    //     SRmenu_model();
+    // // if(ImGui::CollapsingHeader("Search"))
     //     SRmenu_search();
-    if(ImGui::CollapsingHeader("EMD"))
-       SRmenu_EMD();
-    //SRmenu_final();
-    ImGui::End();
+    // if(ImGui::CollapsingHeader("EMD"))
+    //    SRmenu_EMD();
+    SRmenu_final();
+    //ImGui::End();
 }
 void SRmenu_model() {
     if(ImGui::TreeNode("Imported models")) {
@@ -709,9 +845,9 @@ void SRmenu_model() {
             // if(ImGui::Button("Build STree"))
             //     build_sphere_tree(id);
             ImGui::SameLine();
-            // if(ImGui::Button("Build STree(MEDIAL)"))
-            //     build_medial_axis(id);
-            // ImGui::SameLine();
+            if(ImGui::Button("Build STree(MEDIAL)"))
+                build_medial_axis(id);
+            ImGui::SameLine();
             if(ImGui::Button("Toggle STree")) {
                 get_model_sphere_tree(id).set_valid(!get_model_sphere_tree(id).is_valid());
                 if(get_model_sphere_tree(id).is_valid())
@@ -729,12 +865,21 @@ void SRmenu_model() {
             ImGui::SameLine();
             if(ImGui::Button("Change STree render"))            
                 change_sphere_tree_render_mode(id);
-            //ImGui::SameLine();
-            // if(ImGui::Button("Flip ma normal"))            
-            // {
-            //     ma_flip = !ma_flip;
-            //     build_medial_axis(id);
+            // ImGui::SameLine();
+            // if(ImGui::Button("Change radius")) {
+            //     AF::SRsphere_tree &ST = get_model_sphere_tree(id);
+            //     for(auto it = ST.tree.begin(); it != ST.tree.end(); it++) {
+            //         it->S.get_geometry().set_radius(1e-3);
+            //     }
+            //     ST.destroy_render();
+            //     ST.build_render();
             // }
+            ImGui::SameLine();
+            if(ImGui::Button("Flip ma normal"))            
+            {
+                ma_flip = !ma_flip;
+                build_medial_axis(id);
+            }
             ImGui::PopID();
             id++;
         }
@@ -772,6 +917,9 @@ void SRmenu_EMD() {
             findResidueHD(level);
         }
         ImGui::SameLine();
+        if(ImGui::Button("Find CD")) {
+            findCD(level);
+        }
         if(ImGui::Button("Render mode")) {
             residue_rmode = !residue_rmode;
             findResidue(level);
@@ -897,9 +1045,10 @@ void selectSearchModel(std::string &path) {
     AF::material material;
     material.set_emmision(AF::color(0, 0, 0));
     material.set_ambient(AF::color(0.2, 0.2, 0.2));
-    material.set_diffuse(AF::color(0.4, 0.4, 0.4));
+    material.set_diffuse(AF::color(0.7, 0.7, 0.7));
     material.set_specular(AF::color(1.0, 1.0, 1.0));
     material.set_shininess(100);    
+    ptr->set_material(material);
     ptr->shader_set_material(material);
     
     AF::light_point light;
@@ -990,6 +1139,42 @@ void reorderEMD() {
     searchResult = nresult;
 }
 
+void reorderHD() {
+    auto &stree = *(*(searchModel->get_property<AF::SRsphere_tree>().begin()));
+
+    struct resultItem {
+        std::string path;
+        double error;
+    };
+    struct resultItemComp {
+        bool operator() (const resultItem &lhs, const resultItem& rhs) const {
+            if(lhs.error == rhs.error)
+                return true;
+            else return lhs.error < rhs.error;
+        }
+    };
+    using resultQ = std::set<resultItem, resultItemComp>;
+    
+    resultQ reorder;
+    for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
+        int nodeID = DB.model_node_map.find(*it)->second;
+        for(auto it2 = DB.tree[nodeID].models.begin(); it2 != DB.tree[nodeID].models.end(); it2++) {
+            if(it2->path == *it) {
+                double hd = AF::SRsphere_tree::computeHD(it2->ST, stree, DB.height);
+                reorder.insert({*it, hd});
+                break;
+            }
+        }
+    }
+
+    std::vector<std::string> nresult;
+    for(auto it = reorder.begin(); it != reorder.end(); it++) {
+        nresult.push_back(it->path);
+    }
+
+    searchResult = nresult;
+}
+
 void SRmenu_final() {
     if(ImGui::TreeNode("Select input model")) {
         namespace fs = std::experimental::filesystem;
@@ -1022,6 +1207,10 @@ void SRmenu_final() {
             ImGui::SameLine();
             if(ImGui::Button("Reorder : Earth Mover's distance")) {
                 reorderEMD();
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Reorder : Hausdorff distance")) {
+                reorderHD();
             }
             ImGui::Text("Result : ");
             for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
@@ -1075,6 +1264,9 @@ int main(int argc, char** argv)
     
 
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Setup ImGui.
     IMGUI_CHECKVERSION();

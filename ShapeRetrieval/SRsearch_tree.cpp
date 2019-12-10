@@ -1,6 +1,7 @@
 #include "SRsearch_tree.hpp"
 #include <iostream>
 #include <fstream>
+#include <deque>
 
 namespace AF {   
     AF::SRsphere_tree& get_model_sphere_tree(std::shared_ptr<object> optr) {
@@ -137,11 +138,11 @@ namespace AF {
         using ipair = std::pair<int, int>;
 
         std::set<int> included;
-        std::set<ipair> queue;
+        std::deque<ipair> queue;
         
-        queue.insert(ipair(stree.root, target.root));
+        queue.push_back(ipair(stree.root, target.root));
         while(!queue.empty()) {
-            ipair item = *queue.begin(); queue.erase(queue.begin());
+            ipair item = queue.front(); queue.pop_front();
 
             if(included.find(item.first) != included.end())
                 continue;
@@ -172,7 +173,7 @@ namespace AF {
                         } 
                         else {
                             for(auto it = nA.child.begin(); it != nA.child.end(); it++)
-                                queue.insert(ipair(*it, item.second));
+                                queue.push_back(ipair(*it, item.second));
                         }
                     }
                 }
@@ -181,7 +182,7 @@ namespace AF {
                 if(cdist - sA.get_radius() - sB.get_radius() < 0) {
                     for(auto it = nA.child.begin(); it != nA.child.end(); it++) {
                         for(auto it2 = nB.child.begin(); it2 != nB.child.end(); it2++) {
-                            queue.insert(ipair(*it, *it2));
+                            queue.push_back(ipair(*it, *it2));
                         }
                     }
                 }
@@ -261,21 +262,11 @@ namespace AF {
                     //double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height, TR);
                     // ===================================================================================
                     double metric = SRsphere_tree::compute_pseudo_emd(ST, stree, height);
-                    // if(metric < error_upper_bound) 
-                    //     error_upper_bound = metric;
-
+                    
                     // Choice 1 : DEFAULT
                     results.insert({it->path, metric});
 
-                    // Choice 2 : CHAMFER's DISTANCE
-                    // metric = SRsphere_tree::computeCD(ST, stree, height);
-                    // results.insert({it->path, metric});
-
-                    // Choice 3 : EMD
-                    // metric = SRsphere_tree::computeEMD(ST, stree, height);
-                    // results.insert({it->path, metric});
-
-                    if(results.size() < 5) {
+                    if(results.size() <= 5) {
                         error_upper_bound = results.cbegin()->error;
                     }
                     else {

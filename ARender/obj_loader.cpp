@@ -229,6 +229,8 @@ namespace AF {
                 str = tokenlist.at(i);
             size_t
                 len = str.length();
+            if(len == 0)
+                continue;
             int
                 delim[3];
             int
