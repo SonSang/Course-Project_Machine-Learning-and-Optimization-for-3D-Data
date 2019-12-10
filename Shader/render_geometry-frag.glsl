@@ -38,7 +38,7 @@ void main(void) {
         color = MM.diffuse;
     }
 
-    gl_FragColor = vec4(color, 0.5);
+    gl_FragColor = vec4(color, 1.0);
 }
 
 lowp vec3 apply_light_point() {

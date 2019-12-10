@@ -139,19 +139,43 @@ namespace AF {
 
         std::set<int> included;
         std::deque<ipair> queue;
+
+        int curNode = stree.root;
+        int curParent = -1;
+        bool curIncluded = false;
+        bool curParentIncluded = false;
         
         queue.push_back(ipair(stree.root, target.root));
         while(!queue.empty()) {
             ipair item = queue.front(); queue.pop_front();
 
-            if(included.find(item.first) != included.end())
-                continue;
+            if(item.first != curNode) {
+                curNode = item.first;
+
+                if(included.find(curNode) != included.end()) {
+                    curIncluded = true;
+                    continue;
+                }
+                else 
+                    curIncluded = false;
+                
+                if(stree.tree[curNode].parent != curParent) {
+                    curParent = stree.tree[curNode].parent;
+                    if(included.find(curParent) != included.end()) {
+                        curParentIncluded = true;
+                        continue;
+                    }
+                    else 
+                        curParentIncluded = false;
+                }
+            }
+            else {
+                if(curIncluded || curParentIncluded)
+                    continue;
+            }
 
             const SRsphere_tree::node &nA = stree.tree.at(item.first);
             const SRsphere_tree::node &nB = target.tree.at(item.second);
-
-            if(included.find(nA.parent) != included.end())
-                continue;
 
             const SRsphere &sA = nA.S.get_geometry_c();
             const SRsphere &sB = nB.S.get_geometry_c();
@@ -164,12 +188,14 @@ namespace AF {
                         // include
                         inVolume += nA.volume;
                         included.insert(item.first);
+                        curIncluded = true;
                     }
                     else {
                         // not included
                         if(nA.level == streeLevel) {
                             inVolume += nA.volume;
                             included.insert(item.first);
+                            curIncluded = true;
                         } 
                         else {
                             for(auto it = nA.child.begin(); it != nA.child.end(); it++)
