@@ -986,9 +986,10 @@ void SRmenu_search() {
 std::shared_ptr<AF::object> searchModel;
 std::vector<std::string> searchResult;
 bool selectModelInit = true;
+double search_time = 0;
 
-void selectSearchModel(std::string &path) {
-
+void selectSearchModel(const std::string &opath) {
+    std::string path = opath;
     if(selectModelInit) {
         searchModel = std::make_shared<AF::object>(path);
         SM.get_object_manager().add_object(searchModel);
@@ -1065,6 +1066,8 @@ void doSearch() {
     AF::timer::start("Search Time");
     searchResult = DB.search(stree);
     AF::timer::end_print();
+
+    search_time = AF::timer::get_elapsed_time();
 }
 
 void reorderCD() {
@@ -1177,42 +1180,54 @@ void reorderHD() {
 
 void SRmenu_final() {
     if(ImGui::TreeNode("Select input model")) {
-        namespace fs = std::experimental::filesystem;
-        fs::path valPath = fs::current_path();
-        valPath /= "/Assets/val/";
-        for(auto folder : fs::directory_iterator(valPath)) {
-            if(ImGui::TreeNode(folder.path().c_str())) {
-                for(auto file : fs::directory_iterator(folder.path())) {
-                    std::string name = file.path();
-                    if(*(name.end() - 3) == 's') {
-                        name.replace(name.end() - 3, name.end(), "obj");
-                        if(ImGui::Button(name.c_str())) {
-                            selectSearchModel(name);
-                        }
-                    }
-                }
-                ImGui::TreePop();
-            }
-        }
+        // namespace fs = std::experimental::filesystem;
+        // fs::path valPath = fs::current_path();
+        // valPath /= "/Assets/val/";
+        // for(auto folder : fs::directory_iterator(valPath)) {
+        //     if(ImGui::TreeNode(folder.path().c_str())) {
+        //         for(auto file : fs::directory_iterator(folder.path())) {
+        //             std::string name = file.path();
+        //             if(*(name.end() - 3) == 's') {
+        //                 name.replace(name.end() - 3, name.end(), "obj");
+        //                 if(ImGui::Button(name.c_str())) {
+        //                     selectSearchModel(name);
+        //                 }
+        //             }
+        //         }
+        //         ImGui::TreePop();
+        //     }
+        // }
+        if(ImGui::Button("Plane")) selectSearchModel("/Assets/val/02691156/model_000081.obj");
+        if(ImGui::Button("Guitar")) selectSearchModel("/Assets/val/03467517/model_014704.obj");
+        if(ImGui::Button("Bus")) selectSearchModel("/Assets/val/02924116/model_037281.obj");
+        if(ImGui::Button("Keyboard")) selectSearchModel("/Assets/val/03085013/model_027690.obj");
+        if(ImGui::Button("Car")) selectSearchModel("/Assets/val/02958343/model_009608.obj");
+        if(ImGui::Button("Ship")) selectSearchModel("/Assets/val/04530566/model_048027.obj");
+        if(ImGui::Button("Gun")) selectSearchModel("/Assets/val/03948459/model_013828.obj");
+        if(ImGui::Button("Bike")) selectSearchModel("/Assets/val/02834778/model_040852.obj");
+        if(ImGui::Button("Knife")) selectSearchModel("/Assets/val/03624134/model_048837.obj");
+        
         ImGui::TreePop();
     }
     if(ImGui::TreeNode("Search model")) {
         if(!selectModelInit) {
             if(ImGui::Button("Do Search")) 
                 doSearch();
-            ImGui::SameLine();
-            if(ImGui::Button("Reorder : Chamfer's distance")) {
-                reorderCD();
-            }
-            ImGui::SameLine();
-            if(ImGui::Button("Reorder : Earth Mover's distance")) {
-                reorderEMD();
-            }
-            ImGui::SameLine();
-            if(ImGui::Button("Reorder : Hausdorff distance")) {
-                reorderHD();
-            }
+            // ImGui::SameLine();
+            // if(ImGui::Button("Reorder : Chamfer's distance")) {
+            //     reorderCD();
+            // }
+            // ImGui::SameLine();
+            // if(ImGui::Button("Reorder : Earth Mover's distance")) {
+            //     reorderEMD();
+            // }
+            // ImGui::SameLine();
+            // if(ImGui::Button("Reorder : Hausdorff distance")) {
+            //     reorderHD();
+            // }
             ImGui::Text("Result : ");
+            ImGui::SameLine();
+            ImGui::Text("%f (sec)", search_time);
             for(auto it = searchResult.begin(); it != searchResult.end(); it++) {
                 if(ImGui::Button(it->c_str())) 
                    selectSearchModel(*it);
