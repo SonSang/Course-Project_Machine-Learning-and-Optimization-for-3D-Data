@@ -186,6 +186,8 @@ namespace AF {
             BO.EBO_size.push_back(6 * size);
         }
         void render_mesh3() const noexcept {
+            shader_set_material(this->get_material_c());
+
             get_shader_c().enable();
         
             // Render by mode.

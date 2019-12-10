@@ -159,7 +159,8 @@ namespace AF {
 
 		// Test : return residual spheres...
 		static void test_pseudo_emd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB);
-		
+		static void test_pseudo_hd(const SRsphere_tree &a, const SRsphere_tree &b, int level, SRsphere_set &subA, SRsphere_set &subB, vec3d &apt, vec3d &bpt);
+
 		// Compute whole volume of spheres at certain level.
 		double compute_level_volume(int level) const;
 		// Compute specific pseudo EMD.

@@ -121,6 +121,13 @@ namespace AF {
 
         mesh3 build_mesh3() const noexcept;
     };
+
+    // Line
+    class line : public geometry {
+    public:
+        vec3d va;
+        vec3d vb;
+    };
 }
 
 #endif
